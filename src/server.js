@@ -9,6 +9,7 @@ const session = require('express-session');
 const RedisStore = require('connect-redis').default;
 
 const redisClient = require('./config/redis');
+const { swaggerUi, specs } = require('./config/swagger');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -49,6 +50,13 @@ app.use(session({
 // Import routes
 const apiRoutes = require('./routes');
 
+// Swagger documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, {
+  explorer: true,
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'BirdSphere API Documentation'
+}));
+
 // Mount API routes
 app.use('/api', apiRoutes);
 
@@ -59,7 +67,8 @@ app.get('/', (req, res) => {
   res.json({
     message: 'BirdSphere API Server',
     version: '1.0.0',
-    status: 'running'
+    status: 'running',
+    documentation: '/api-docs'
   });
 });
 
