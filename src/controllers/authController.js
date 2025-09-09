@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const { cache, cacheKeys } = require('../middleware/cache');
 
 const register = async (req, res) => {
   try {
@@ -136,6 +137,13 @@ const updateProfile = async (req, res) => {
     }
 
     const updatedUser = await User.update(req.user.id, updates);
+    
+    // Invalidate user-related caches
+    await Promise.all([
+      cache.del(cacheKeys.user(req.user.username)),
+      cache.delPattern(`user:${req.user.username}:listings:*`),
+      cache.delPattern('breeders:*')
+    ]);
     
     res.json({
       message: 'Profile updated successfully',

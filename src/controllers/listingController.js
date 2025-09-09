@@ -1,5 +1,6 @@
 const Listing = require('../models/Listing');
 const ListingMedia = require('../models/ListingMedia');
+const { cache, cacheKeys } = require('../middleware/cache');
 const fs = require('fs').promises;
 const path = require('path');
 
@@ -21,6 +22,13 @@ const createListing = async (req, res) => {
 
     const listing = await Listing.create(sellerId, listingData);
 
+    // Invalidate relevant caches
+    await Promise.all([
+      cache.delPattern('listings:*'),
+      cache.delPattern(`user:${req.user.username}:listings:*`),
+      cache.del(cacheKeys.user(req.user.username))
+    ]);
+
     res.status(201).json({
       message: 'Listing created successfully',
       listing: formatListingResponse(listing)
@@ -34,18 +42,31 @@ const createListing = async (req, res) => {
 const getListings = async (req, res) => {
   try {
     const filters = req.validatedQuery;
+    const cacheKey = cacheKeys.listings(filters);
+    
+    // Try to get from cache first
+    const cachedResult = await cache.get(cacheKey);
+    if (cachedResult) {
+      return res.json(cachedResult);
+    }
+    
     const listings = await Listing.search(filters);
 
     const formattedListings = listings.map(listing => formatListingResponse(listing));
 
-    res.json({
+    const response = {
       listings: formattedListings,
       pagination: {
         page: filters.page,
         limit: filters.limit,
         hasMore: listings.length === filters.limit
       }
-    });
+    };
+    
+    // Cache search results for 15 minutes (900 seconds)
+    await cache.set(cacheKey, response, 900);
+
+    res.json(response);
   } catch (error) {
     console.error('Get listings error:', error);
     res.status(500).json({ error: 'Failed to get listings' });
@@ -79,13 +100,31 @@ const getListing = async (req, res) => {
 const getUserListings = async (req, res) => {
   try {
     const { status } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const cacheKey = cacheKeys.userListings(req.user.id, page);
+    
+    // Try to get from cache first (only for active listings)
+    if (!status || status === 'active') {
+      const cachedResult = await cache.get(cacheKey);
+      if (cachedResult) {
+        return res.json(cachedResult);
+      }
+    }
+    
     const listings = await Listing.findBySeller(req.user.id, status);
 
     const formattedListings = listings.map(listing => formatListingResponse(listing));
 
-    res.json({
+    const response = {
       listings: formattedListings
-    });
+    };
+    
+    // Cache user listings for 10 minutes (600 seconds) - only active listings
+    if (!status || status === 'active') {
+      await cache.set(cacheKey, response, 600);
+    }
+
+    res.json(response);
   } catch (error) {
     console.error('Get user listings error:', error);
     res.status(500).json({ error: 'Failed to get user listings' });
@@ -103,6 +142,13 @@ const updateListing = async (req, res) => {
     if (!listing) {
       return res.status(404).json({ error: 'Listing not found or access denied' });
     }
+
+    // Invalidate relevant caches
+    await Promise.all([
+      cache.delPattern('listings:*'),
+      cache.delPattern(`user:${req.user.username}:listings:*`),
+      cache.del(cacheKeys.user(req.user.username))
+    ]);
 
     res.json({
       message: 'Listing updated successfully',
@@ -137,6 +183,13 @@ const deleteListing = async (req, res) => {
       }
     }
 
+    // Invalidate relevant caches
+    await Promise.all([
+      cache.delPattern('listings:*'),
+      cache.delPattern(`user:${req.user.username}:listings:*`),
+      cache.del(cacheKeys.user(req.user.username))
+    ]);
+
     res.json({ message: 'Listing deleted successfully' });
   } catch (error) {
     console.error('Delete listing error:', error);
@@ -146,6 +199,14 @@ const deleteListing = async (req, res) => {
 
 const getCategories = async (req, res) => {
   try {
+    const cacheKey = cacheKeys.categories;
+    
+    // Try to get from cache first
+    const cachedCategories = await cache.get(cacheKey);
+    if (cachedCategories) {
+      return res.json(cachedCategories);
+    }
+    
     const categories = await Listing.getCategories();
     
     // Organize into parent-child structure
@@ -165,7 +226,12 @@ const getCategories = async (req, res) => {
         }))
     }));
 
-    res.json({ categories: organizedCategories });
+    const response = { categories: organizedCategories };
+    
+    // Cache for 1 hour (3600 seconds)
+    await cache.set(cacheKey, response, 3600);
+    
+    res.json(response);
   } catch (error) {
     console.error('Get categories error:', error);
     res.status(500).json({ error: 'Failed to get categories' });

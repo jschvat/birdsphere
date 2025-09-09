@@ -1,9 +1,17 @@
 const User = require('../models/User');
 const Listing = require('../models/Listing');
+const { cache, cacheKeys } = require('../middleware/cache');
 
 const getUserProfile = async (req, res) => {
   try {
     const { username } = req.params;
+    const cacheKey = cacheKeys.user(username);
+    
+    // Try to get from cache first
+    const cachedProfile = await cache.get(cacheKey);
+    if (cachedProfile) {
+      return res.json(cachedProfile);
+    }
     
     // Find user by username
     const user = await User.findByUsername(username);
@@ -14,7 +22,7 @@ const getUserProfile = async (req, res) => {
     // Get user's active listings
     const listings = await Listing.findBySeller(user.id, 'active');
 
-    res.json({
+    const response = {
       user: {
         id: user.id,
         username: user.username,
@@ -45,7 +53,12 @@ const getUserProfile = async (req, res) => {
         createdAt: listing.created_at
       })),
       listingCount: listings.length
-    });
+    };
+    
+    // Cache user profile for 30 minutes (1800 seconds)
+    await cache.set(cacheKey, response, 1800);
+
+    res.json(response);
   } catch (error) {
     console.error('Get user profile error:', error);
     res.status(500).json({ error: 'Failed to get user profile' });
@@ -60,12 +73,18 @@ const findNearbyUsers = async (req, res) => {
       return res.status(400).json({ error: 'Latitude and longitude are required' });
     }
 
-    const users = await User.searchNearby(
-      parseFloat(latitude), 
-      parseFloat(longitude), 
-      parseFloat(radius), 
-      parseInt(limit)
-    );
+    const lat = parseFloat(latitude);
+    const lng = parseFloat(longitude);
+    const radiusKm = parseFloat(radius);
+    const cacheKey = cacheKeys.nearbyBreeders(lat, lng, radiusKm);
+    
+    // Try to get from cache first
+    const cachedResult = await cache.get(cacheKey);
+    if (cachedResult) {
+      return res.json(cachedResult);
+    }
+
+    const users = await User.searchNearby(lat, lng, radiusKm, parseInt(limit));
 
     const formattedUsers = users.map(user => ({
       id: user.id,
@@ -81,10 +100,15 @@ const findNearbyUsers = async (req, res) => {
       distance: parseFloat(user.distance)
     }));
 
-    res.json({
+    const response = {
       users: formattedUsers,
       count: formattedUsers.length
-    });
+    };
+    
+    // Cache nearby breeders for 20 minutes (1200 seconds)
+    await cache.set(cacheKey, response, 1200);
+
+    res.json(response);
   } catch (error) {
     console.error('Find nearby users error:', error);
     res.status(500).json({ error: 'Failed to find nearby users' });
