@@ -1,7 +1,8 @@
 const jwt = require('jsonwebtoken');
 const ChatRoom = require('../models/ChatRoom');
-const ChatMessage = require('../models/ChatMessage');
+const ChatMessage = require('../models/HybridChatMessage'); // Updated to use hybrid model
 const User = require('../models/User');
+const mongoConnection = require('../config/mongodb');
 
 // Store active connections
 const activeConnections = new Map();
@@ -41,6 +42,13 @@ const authenticateSocket = async (socket, next) => {
 };
 
 const initializeChatHandler = (io) => {
+  // Initialize MongoDB connection if configured
+  if (process.env.USE_MONGODB_CHAT === 'true') {
+    mongoConnection.connect().catch(error => {
+      console.error('Failed to connect to MongoDB for chat:', error);
+    });
+  }
+
   // Apply authentication middleware
   io.use(authenticateSocket);
 

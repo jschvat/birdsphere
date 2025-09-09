@@ -8,6 +8,9 @@ const { messageSchema } = require('../utils/validation');
 // All message routes require authentication
 router.use(authenticateToken);
 
+// Simple messages endpoint
+router.get('/', messageController.getConversations);
+
 /**
  * @swagger
  * /api/messages/conversations:

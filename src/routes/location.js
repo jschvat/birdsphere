@@ -2,6 +2,10 @@ const express = require('express');
 const router = express.Router();
 const locationController = require('../controllers/locationController');
 
+// Simple endpoints for compatibility
+router.get('/search', locationController.searchLocations);
+router.get('/nearby', locationController.getNearbyListings);
+
 /**
  * @swagger
  * /api/location/nearby/listings:

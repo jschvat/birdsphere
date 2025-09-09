@@ -155,8 +155,41 @@ const calculateDistanceBetweenPoints = async (req, res) => {
   }
 };
 
+const searchLocations = async (req, res) => {
+  try {
+    const { query } = req.query;
+    
+    if (!query || query.trim().length < 2) {
+      return res.status(400).json({ error: 'Search query must be at least 2 characters long' });
+    }
+
+    // Simple location search - in a real app, you'd use a geocoding service
+    const mockLocations = [
+      { name: 'Seattle, WA', coordinates: { lat: 47.6062, lng: -122.3321 } },
+      { name: 'Los Angeles, CA', coordinates: { lat: 34.0522, lng: -118.2437 } },
+      { name: 'New York, NY', coordinates: { lat: 40.7128, lng: -74.0060 } },
+      { name: 'Chicago, IL', coordinates: { lat: 41.8781, lng: -87.6298 } },
+      { name: 'Houston, TX', coordinates: { lat: 29.7604, lng: -95.3698 } }
+    ];
+
+    const filteredLocations = mockLocations.filter(location =>
+      location.name.toLowerCase().includes(query.toLowerCase())
+    );
+
+    res.json({
+      query,
+      locations: filteredLocations,
+      count: filteredLocations.length
+    });
+  } catch (error) {
+    console.error('Search locations error:', error);
+    res.status(500).json({ error: 'Failed to search locations' });
+  }
+};
+
 module.exports = {
   getNearbyListings,
   getNearbyBreeders,
-  calculateDistanceBetweenPoints
+  calculateDistanceBetweenPoints,
+  searchLocations
 };

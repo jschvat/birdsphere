@@ -115,7 +115,140 @@ const findNearbyUsers = async (req, res) => {
   }
 };
 
+const getAllUsers = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+    const offset = (page - 1) * limit;
+
+    const users = await User.findAll({
+      limit,
+      offset,
+      publicOnly: true
+    });
+
+    const response = {
+      users: users.map(user => ({
+        id: user.id,
+        username: user.username,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        isBreeder: user.is_breeder,
+        location: {
+          city: user.location_city,
+          state: user.location_state,
+          country: user.location_country
+        },
+        createdAt: user.created_at
+      })),
+      pagination: {
+        page,
+        limit,
+        hasMore: users.length === limit
+      }
+    };
+
+    res.json(response);
+  } catch (error) {
+    console.error('Get all users error:', error);
+    res.status(500).json({ error: 'Failed to get users' });
+  }
+};
+
+const getCurrentUserProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const response = {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      firstName: user.first_name,
+      lastName: user.last_name,
+      phone: user.phone,
+      bio: user.bio,
+      profileImage: user.profile_image,
+      location: {
+        city: user.location_city,
+        state: user.location_state,
+        country: user.location_country,
+        coordinates: user.latitude && user.longitude ? {
+          latitude: user.latitude,
+          longitude: user.longitude
+        } : null
+      },
+      isBreeder: user.is_breeder,
+      isVerified: user.is_verified,
+      createdAt: user.created_at,
+      lastLogin: user.last_login
+    };
+
+    res.json(response);
+  } catch (error) {
+    console.error('Get current user profile error:', error);
+    res.status(500).json({ error: 'Failed to get profile' });
+  }
+};
+
+const updateProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const updates = req.body;
+
+    // Filter allowed fields
+    const allowedFields = [
+      'firstName', 'lastName', 'phone', 'bio', 'profileImage',
+      'locationCity', 'locationState', 'locationCountry',
+      'latitude', 'longitude', 'isBreeder'
+    ];
+
+    const filteredUpdates = {};
+    for (const [key, value] of Object.entries(updates)) {
+      if (allowedFields.includes(key)) {
+        filteredUpdates[key] = value;
+      }
+    }
+
+    if (Object.keys(filteredUpdates).length === 0) {
+      return res.status(400).json({ error: 'No valid fields to update' });
+    }
+
+    const updatedUser = await User.update(userId, filteredUpdates);
+    if (!updatedUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({
+      message: 'Profile updated successfully',
+      user: {
+        id: updatedUser.id,
+        username: updatedUser.username,
+        firstName: updatedUser.first_name,
+        lastName: updatedUser.last_name,
+        phone: updatedUser.phone,
+        bio: updatedUser.bio,
+        profileImage: updatedUser.profile_image,
+        location: {
+          city: updatedUser.location_city,
+          state: updatedUser.location_state,
+          country: updatedUser.location_country
+        },
+        isBreeder: updatedUser.is_breeder
+      }
+    });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({ error: 'Failed to update profile' });
+  }
+};
+
 module.exports = {
   getUserProfile,
-  findNearbyUsers
+  findNearbyUsers,
+  getAllUsers,
+  getCurrentUserProfile,
+  updateProfile
 };

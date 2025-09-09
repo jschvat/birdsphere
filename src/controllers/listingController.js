@@ -1,15 +1,45 @@
+/**
+ * Listing Controller
+ * 
+ * Handles all CRUD operations for pet listings in the BirdSphere marketplace.
+ * Provides endpoints for creating, reading, updating, and deleting listings,
+ * as well as managing associated media files and categories.
+ * 
+ * Features:
+ * - Full CRUD operations for listings
+ * - Advanced search and filtering capabilities
+ * - Geographic location-based search
+ * - Media file upload and management
+ * - Category management
+ * - Caching for improved performance
+ * - View counting and analytics
+ * - User permission validation
+ */
+
 const Listing = require('../models/Listing');
 const ListingMedia = require('../models/ListingMedia');
 const { cache, cacheKeys } = require('../middleware/cache');
 const fs = require('fs').promises;
 const path = require('path');
 
+/**
+ * Create a new listing
+ * 
+ * Creates a new pet listing with the provided data. If location coordinates
+ * are not provided, inherits them from the user's profile. Automatically
+ * invalidates related caches to ensure data consistency.
+ * 
+ * @param {Object} req.validatedData - Validated listing data from middleware
+ * @param {Object} req.user - Authenticated user information
+ * @returns {Object} JSON response with created listing data
+ */
 const createListing = async (req, res) => {
   try {
     const listingData = req.validatedData;
     const sellerId = req.user.id;
 
-    // Inherit user's location if not provided
+    // Inherit user's location if not provided in listing data
+    // This provides convenience for users who want to use their profile location
     if (!listingData.latitude || !listingData.longitude) {
       if (req.user.latitude && req.user.longitude) {
         listingData.latitude = req.user.latitude;
@@ -20,13 +50,15 @@ const createListing = async (req, res) => {
       }
     }
 
+    // Create the listing in the database
     const listing = await Listing.create(sellerId, listingData);
 
-    // Invalidate relevant caches
+    // Invalidate relevant caches to ensure fresh data on next requests
+    // This maintains cache consistency across the application
     await Promise.all([
-      cache.delPattern('listings:*'),
-      cache.delPattern(`user:${req.user.username}:listings:*`),
-      cache.del(cacheKeys.user(req.user.username))
+      cache.delPattern('listings:*'),                           // All listing searches
+      cache.delPattern(`user:${req.user.username}:listings:*`), // User's listing cache
+      cache.del(cacheKeys.user(req.user.username))              // User profile cache
     ]);
 
     res.status(201).json({

@@ -1,4 +1,40 @@
+/**
+ * Validation Utilities
+ * 
+ * Centralized validation schemas and middleware for the BirdSphere API.
+ * Uses Joi for comprehensive data validation with detailed error messages.
+ * 
+ * Features:
+ * - Request body validation middleware
+ * - Query parameter validation middleware
+ * - Reusable validation schemas for all entities
+ * - Detailed error formatting
+ * - Type coercion and default values
+ */
+
 const Joi = require('joi');
+
+// Common validation patterns
+const commonPatterns = {
+  uuid: Joi.string().uuid(),
+  email: Joi.string().email().lowercase(),
+  phone: Joi.string().pattern(/^[\+]?[1-9][\d]{0,15}$/),
+  coordinates: {
+    latitude: Joi.number().min(-90).max(90),
+    longitude: Joi.number().min(-180).max(180)
+  },
+  location: {
+    city: Joi.string().max(100).trim(),
+    state: Joi.string().max(50).trim(),
+    country: Joi.string().max(50).trim()
+  },
+  pagination: {
+    page: Joi.number().integer().min(1).default(1),
+    limit: Joi.number().integer().min(1).max(50).default(20)
+  },
+  price: Joi.number().min(0).max(99999.99),
+  sortOrder: Joi.string().valid('asc', 'desc').default('desc')
+};
 
 const registerSchema = Joi.object({
   email: Joi.string().email().required(),

@@ -46,6 +46,26 @@ class User {
     return result.rows[0];
   }
 
+  static async findAll(options = {}) {
+    const { limit = 20, offset = 0, publicOnly = false } = options;
+    
+    let query = `
+      SELECT id, first_name, last_name, username, 
+             location_city, location_state, location_country,
+             is_breeder, is_verified, created_at
+      FROM users
+    `;
+    
+    if (publicOnly) {
+      query += ` WHERE is_verified = true`;
+    }
+    
+    query += ` ORDER BY created_at DESC LIMIT $1 OFFSET $2`;
+    
+    const result = await db.query(query, [limit, offset]);
+    return result.rows;
+  }
+
   static async validatePassword(password, passwordHash) {
     return await bcrypt.compare(password, passwordHash);
   }

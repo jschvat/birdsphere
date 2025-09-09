@@ -24,6 +24,21 @@ services:
       - redis_data:/data
     restart: unless-stopped
 
+  mongodb:
+    image: mongo:7
+    container_name: birdsphere_mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: birdsphere_admin
+      MONGO_INITDB_ROOT_PASSWORD: mongodb_password_123
+      MONGO_INITDB_DATABASE: birdsphere_chat
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - ./init-mongo:/docker-entrypoint-initdb.d
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   redis_data:
+  mongodb_data:
