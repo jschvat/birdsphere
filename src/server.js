@@ -7,11 +7,23 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const session = require('express-session');
 const RedisStore = require('connect-redis').default;
+const { createServer } = require('http');
+const { Server } = require('socket.io');
 
 const redisClient = require('./config/redis');
 const { swaggerUi, specs } = require('./config/swagger');
 
 const app = express();
+const server = createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: process.env.NODE_ENV === 'production' 
+      ? ['https://birdsphere.com'] 
+      : ['http://localhost:3000', 'http://localhost:3001'],
+    credentials: true
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 
 const limiter = rateLimit({
@@ -95,7 +107,11 @@ app.use((req, res) => {
   });
 });
 
-app.listen(PORT, () => {
+// Initialize Socket.IO chat
+require('./socket/chatHandler')(io);
+
+server.listen(PORT, () => {
   console.log(`BirdSphere server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV}`);
+  console.log(`Socket.IO chat server enabled`);
 });

@@ -7,6 +7,7 @@ const listingRoutes = require('./listings');
 const messageRoutes = require('./messages');
 const userRoutes = require('./users');
 const locationRoutes = require('./location');
+const chatRoutes = require('./chat');
 
 // Mount routes
 router.use('/auth', authRoutes);
@@ -14,6 +15,7 @@ router.use('/listings', listingRoutes);
 router.use('/messages', messageRoutes);
 router.use('/users', userRoutes);
 router.use('/location', locationRoutes);
+router.use('/chat', chatRoutes);
 
 // API info endpoint
 router.get('/', (req, res) => {
@@ -25,7 +27,8 @@ router.get('/', (req, res) => {
       listings: '/api/listings',
       messages: '/api/messages',
       users: '/api/users',
-      location: '/api/location'
+      location: '/api/location',
+      chat: '/api/chat'
     }
   });
 });
