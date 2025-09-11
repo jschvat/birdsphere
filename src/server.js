@@ -47,7 +47,7 @@ const io = new Server(server, {
     // Allow different origins based on environment
     origin: process.env.NODE_ENV === 'production' 
       ? ['https://birdsphere.com'] 
-      : ['http://localhost:3000', 'http://localhost:3001'],
+      : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'],
     credentials: true // Allow cookies and authentication headers
   }
 });
@@ -87,7 +87,7 @@ app.use(limiter);
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
     ? ['https://birdsphere.com'] 
-    : ['http://localhost:3000', 'http://localhost:3001'],
+    : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'],
   credentials: true, // Allow cookies and auth headers
 }));
 
@@ -132,7 +132,14 @@ app.use('/api', apiRoutes);
 
 // Serve uploaded files (images, documents) statically
 // Files are accessible at /uploads/<filename>
-app.use('/uploads', express.static(process.env.UPLOAD_PATH || 'uploads'));
+app.use('/uploads', (req, res, next) => {
+  res.header('Access-Control-Allow-Origin', process.env.NODE_ENV === 'production' 
+    ? 'https://birdsphere.com' 
+    : 'http://localhost:3002');
+  res.header('Access-Control-Allow-Methods', 'GET');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  next();
+}, express.static(process.env.UPLOAD_PATH || 'uploads'));
 
 /**
  * UTILITY ENDPOINTS

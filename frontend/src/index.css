@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Set the default theme to birdsphere */
+:root {
+  color-scheme: light;
+}
+
+html {
+  --tw-bg-opacity: 1;
+  background-color: hsl(var(--b1) / var(--tw-bg-opacity));
+  color: hsl(var(--bc) / var(--tw-text-opacity));
+}
+
+[data-theme="birdsphere"] {
+  color-scheme: light;
+  --p: 44 85 66; /* #F4B942 primary */
+  --pc: 30 17 5; /* #8B4513 primary content */
+  --s: 26 86 56; /* #F28B2C secondary */
+  --sc: 0 0 100; /* #FFFFFF secondary content */
+  --a: 39 83 50; /* #E6A532 accent */
+  --ac: 30 17 5; /* #8B4513 accent content */
+  --n: 30 17 5; /* #8B4513 neutral */
+  --nc: 0 0 100; /* #FFFFFF neutral content */
+  --b1: 52 7 91; /* #FFF8E7 base-100 */
+  --b2: 44 85 66; /* #F4B942 base-200 */
+  --b3: 39 83 50; /* #E6A532 base-300 */
+  --bc: 30 17 5; /* #8B4513 base content */
+}
+
+/* Custom styles to match login.png aesthetic */
+@layer components {
+  .btn-birdsphere {
+    background-color: #F4B942;
+    color: #8B4513;
+    border: none;
+    font-weight: 600;
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  }
+  
+  .btn-birdsphere:hover {
+    background-color: #E6A532;
+  }
+  
+  .card-birdsphere {
+    background-color: #FFF8E7;
+    box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+    border: 1px solid #E6A532;
+    backdrop-filter: blur(8px);
+  }
+  
+  .input-birdsphere {
+    background-color: white;
+    border: 1px solid #E6A532;
+    color: #8B4513;
+  }
+  
+  .input-birdsphere:focus {
+    border-color: #F4B942;
+    outline: 2px solid #F4B942;
+    outline-offset: 2px;
+  }
+  
+  .gradient-birdsphere {
+    background: linear-gradient(135deg, #FFF8E7 0%, #F4B942 50%, #E6A532 100%);
+  }
+  
+  .text-gradient {
+    background: linear-gradient(135deg, #F4B942, #E6A532);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}

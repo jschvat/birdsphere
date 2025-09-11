@@ -28,8 +28,26 @@ const register = async (req, res) => {
         firstName: user.first_name,
         lastName: user.last_name,
         username: user.username,
+        phone: user.phone,
+        bio: user.bio,
+        profileImage: user.profile_image,
+        locationCity: user.location_city,
+        locationState: user.location_state,
+        locationCountry: user.location_country,
+        latitude: user.latitude ? parseFloat(user.latitude) : null,
+        longitude: user.longitude ? parseFloat(user.longitude) : null,
+        location: {
+          city: user.location_city,
+          state: user.location_state,
+          country: user.location_country,
+          coordinates: user.latitude && user.longitude ? {
+            latitude: parseFloat(user.latitude),
+            longitude: parseFloat(user.longitude)
+          } : null
+        },
         isBreeder: user.is_breeder,
-        isVerified: user.is_verified
+        isVerified: user.is_verified,
+        createdAt: user.created_at
       },
       token
     });
@@ -69,8 +87,27 @@ const login = async (req, res) => {
         firstName: user.first_name,
         lastName: user.last_name,
         username: user.username,
+        phone: user.phone,
+        bio: user.bio,
+        profileImage: user.profile_image,
+        locationCity: user.location_city,
+        locationState: user.location_state,
+        locationCountry: user.location_country,
+        latitude: user.latitude ? parseFloat(user.latitude) : null,
+        longitude: user.longitude ? parseFloat(user.longitude) : null,
+        location: {
+          city: user.location_city,
+          state: user.location_state,
+          country: user.location_country,
+          coordinates: user.latitude && user.longitude ? {
+            latitude: parseFloat(user.latitude),
+            longitude: parseFloat(user.longitude)
+          } : null
+        },
         isBreeder: user.is_breeder,
-        isVerified: user.is_verified
+        isVerified: user.is_verified,
+        createdAt: user.created_at,
+        lastLogin: user.last_login
       },
       token
     });
@@ -86,8 +123,10 @@ const getProfile = async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
+    
+    console.log('getProfile - Raw user from database:', JSON.stringify(user, null, 2));
 
-    res.json({
+    const response = {
       id: user.id,
       email: user.email,
       firstName: user.first_name,
@@ -96,6 +135,11 @@ const getProfile = async (req, res) => {
       phone: user.phone,
       bio: user.bio,
       profileImage: user.profile_image,
+      locationCity: user.location_city,
+      locationState: user.location_state,
+      locationCountry: user.location_country,
+      latitude: user.latitude ? parseFloat(user.latitude) : null,
+      longitude: user.longitude ? parseFloat(user.longitude) : null,
       location: {
         city: user.location_city,
         state: user.location_state,
@@ -109,7 +153,9 @@ const getProfile = async (req, res) => {
       isVerified: user.is_verified,
       createdAt: user.created_at,
       lastLogin: user.last_login
-    });
+    };
+    
+    res.json(response);
   } catch (error) {
     console.error('Get profile error:', error);
     res.status(500).json({ error: 'Failed to get profile' });
@@ -118,6 +164,9 @@ const getProfile = async (req, res) => {
 
 const updateProfile = async (req, res) => {
   try {
+    console.log('updateProfile - Request body:', JSON.stringify(req.body, null, 2));
+    console.log('updateProfile - Validated data:', JSON.stringify(req.validatedData, null, 2));
+    
     const updates = {};
     const userData = req.validatedData;
 
@@ -128,15 +177,21 @@ const updateProfile = async (req, res) => {
       locationCity: 'location_city',
       locationState: 'location_state',
       locationCountry: 'location_country',
-      isBreeder: 'is_breeder'
+      isBreeder: 'is_breeder',
+      profileImage: 'profile_image'
     };
 
     for (const [key, value] of Object.entries(userData)) {
       const dbField = fieldMapping[key] || key;
+      console.log(`updateProfile - Mapping ${key} to ${dbField}`);
       updates[dbField] = value;
     }
 
+    console.log('updateProfile - Updates to apply:', JSON.stringify(updates, null, 2));
+    
     const updatedUser = await User.update(req.user.id, updates);
+    
+    console.log('updateProfile - Updated user from database:', JSON.stringify(updatedUser, null, 2));
     
     // Invalidate user-related caches
     await Promise.all([
@@ -156,6 +211,11 @@ const updateProfile = async (req, res) => {
         phone: updatedUser.phone,
         bio: updatedUser.bio,
         profileImage: updatedUser.profile_image,
+        locationCity: updatedUser.location_city,
+        locationState: updatedUser.location_state,
+        locationCountry: updatedUser.location_country,
+        latitude: updatedUser.latitude ? parseFloat(updatedUser.latitude) : null,
+        longitude: updatedUser.longitude ? parseFloat(updatedUser.longitude) : null,
         location: {
           city: updatedUser.location_city,
           state: updatedUser.location_state,

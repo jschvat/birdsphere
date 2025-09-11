@@ -37,23 +37,23 @@ const commonPatterns = {
 };
 
 const registerSchema = Joi.object({
-  email: Joi.string().email().required(),
+  email: Joi.string().email({ tlds: { allow: false } }).required(),
   password: Joi.string().min(8).required(),
   firstName: Joi.string().min(2).max(50).required(),
   lastName: Joi.string().min(2).max(50).required(),
-  username: Joi.string().alphanum().min(3).max(30).required(),
-  phone: Joi.string().pattern(/^[\+]?[1-9][\d]{0,15}$/).optional(),
-  bio: Joi.string().max(500).optional(),
-  locationCity: Joi.string().max(100).optional(),
-  locationState: Joi.string().max(50).optional(),
-  locationCountry: Joi.string().max(50).optional(),
+  username: Joi.string().pattern(/^[a-zA-Z0-9_]+$/).min(3).max(30).required(),
+  phone: Joi.string().pattern(/^[\+]?[1-9][\d]{0,15}$/).optional().allow(''),
+  bio: Joi.string().max(500).optional().allow(''),
+  locationCity: Joi.string().max(100).optional().allow(''),
+  locationState: Joi.string().max(50).optional().allow(''),
+  locationCountry: Joi.string().max(50).optional().allow(''),
   latitude: Joi.number().min(-90).max(90).optional(),
   longitude: Joi.number().min(-180).max(180).optional(),
   isBreeder: Joi.boolean().default(false)
 });
 
 const loginSchema = Joi.object({
-  email: Joi.string().email().required(),
+  email: Joi.string().email({ tlds: { allow: false } }).required(),
   password: Joi.string().required()
 });
 
@@ -62,6 +62,7 @@ const updateUserSchema = Joi.object({
   lastName: Joi.string().min(2).max(50).optional(),
   phone: Joi.string().pattern(/^[\+]?[1-9][\d]{0,15}$/).optional().allow(''),
   bio: Joi.string().max(500).optional().allow(''),
+  profileImage: Joi.string().optional().allow(''),
   locationCity: Joi.string().max(100).optional().allow(''),
   locationState: Joi.string().max(50).optional().allow(''),
   locationCountry: Joi.string().max(50).optional().allow(''),

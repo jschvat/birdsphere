@@ -1,0 +1,934 @@
+{
+  "timestamp": "2025-09-11T14:05:40.836Z",
+  "summary": {
+    "total": 15,
+    "passed": 15,
+    "failed": 0,
+    "errors": []
+  },
+  "tests": {
+    "GET /": {
+      "passed": true,
+      "result": {
+        "success": true,
+        "status": 200,
+        "data": {
+          "message": "BirdSphere API Server",
+          "version": "1.0.0",
+          "status": "running",
+          "documentation": "/api-docs"
+        },
+        "headers": {
+          "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+          "cross-origin-opener-policy": "same-origin",
+          "cross-origin-resource-policy": "same-origin",
+          "origin-agent-cluster": "?1",
+          "referrer-policy": "no-referrer",
+          "strict-transport-security": "max-age=15552000; includeSubDomains",
+          "x-content-type-options": "nosniff",
+          "x-dns-prefetch-control": "off",
+          "x-download-options": "noopen",
+          "x-frame-options": "SAMEORIGIN",
+          "x-permitted-cross-domain-policies": "none",
+          "x-xss-protection": "0",
+          "ratelimit-policy": "100;w=900",
+          "ratelimit-limit": "100",
+          "ratelimit-remaining": "99",
+          "ratelimit-reset": "900",
+          "vary": "Origin, Accept-Encoding",
+          "access-control-allow-credentials": "true",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "100",
+          "etag": "W/\"64-FbJ9PPd5eA7nOgaL3O1hdljufoY\"",
+          "date": "Thu, 11 Sep 2025 14:05:40 GMT",
+          "connection": "keep-alive",
+          "keep-alive": "timeout=5"
+        },
+        "config": {
+          "method": "get",
+          "url": "http://localhost:3000",
+          "sentHeaders": {},
+          "sentData": null
+        }
+      },
+      "timestamp": "2025-09-11T14:05:40.872Z"
+    },
+    "GET /health": {
+      "passed": true,
+      "result": {
+        "success": true,
+        "status": 200,
+        "data": {
+          "status": "healthy",
+          "timestamp": "2025-09-11T14:05:40.874Z",
+          "uptime": 14.000254738
+        },
+        "headers": {
+          "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+          "cross-origin-opener-policy": "same-origin",
+          "cross-origin-resource-policy": "same-origin",
+          "origin-agent-cluster": "?1",
+          "referrer-policy": "no-referrer",
+          "strict-transport-security": "max-age=15552000; includeSubDomains",
+          "x-content-type-options": "nosniff",
+          "x-dns-prefetch-control": "off",
+          "x-download-options": "noopen",
+          "x-frame-options": "SAMEORIGIN",
+          "x-permitted-cross-domain-policies": "none",
+          "x-xss-protection": "0",
+          "ratelimit-policy": "100;w=900",
+          "ratelimit-limit": "100",
+          "ratelimit-remaining": "98",
+          "ratelimit-reset": "900",
+          "vary": "Origin, Accept-Encoding",
+          "access-control-allow-credentials": "true",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "81",
+          "etag": "W/\"51-a8qgubnFHHttibeyFYJV/ymRRK8\"",
+          "date": "Thu, 11 Sep 2025 14:05:40 GMT",
+          "connection": "keep-alive",
+          "keep-alive": "timeout=5"
+        },
+        "config": {
+          "method": "get",
+          "url": "http://localhost:3000/health",
+          "sentHeaders": {},
+          "sentData": null
+        }
+      },
+      "timestamp": "2025-09-11T14:05:40.875Z"
+    },
+    "GET /api/": {
+      "passed": true,
+      "result": {
+        "success": true,
+        "status": 200,
+        "data": {
+          "message": "BirdSphere API",
+          "version": "1.0.0",
+          "endpoints": {
+            "auth": "/api/auth",
+            "listings": "/api/listings",
+            "messages": "/api/messages",
+            "users": "/api/users",
+            "location": "/api/location",
+            "chat": "/api/chat"
+          }
+        },
+        "headers": {
+          "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+          "cross-origin-opener-policy": "same-origin",
+          "cross-origin-resource-policy": "same-origin",
+          "origin-agent-cluster": "?1",
+          "referrer-policy": "no-referrer",
+          "strict-transport-security": "max-age=15552000; includeSubDomains",
+          "x-content-type-options": "nosniff",
+          "x-dns-prefetch-control": "off",
+          "x-download-options": "noopen",
+          "x-frame-options": "SAMEORIGIN",
+          "x-permitted-cross-domain-policies": "none",
+          "x-xss-protection": "0",
+          "ratelimit-policy": "100;w=900",
+          "ratelimit-limit": "100",
+          "ratelimit-remaining": "97",
+          "ratelimit-reset": "900",
+          "vary": "Origin, Accept-Encoding",
+          "access-control-allow-credentials": "true",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "200",
+          "etag": "W/\"c8-0rTzr6N6xLMF/41OfHuVCNMkj3M\"",
+          "date": "Thu, 11 Sep 2025 14:05:40 GMT",
+          "connection": "keep-alive",
+          "keep-alive": "timeout=5"
+        },
+        "config": {
+          "method": "get",
+          "url": "http://localhost:3000/api/",
+          "sentHeaders": {},
+          "sentData": null
+        }
+      },
+      "timestamp": "2025-09-11T14:05:40.880Z"
+    },
+    "POST /api/auth/register": {
+      "passed": true,
+      "result": {
+        "success": true,
+        "status": 400,
+        "data": {
+          "error": "Validation error",
+          "details": [
+            {
+              "field": "username",
+              "message": "\"username\" must only contain alpha-numeric characters"
+            }
+          ]
+        },
+        "headers": {
+          "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+          "cross-origin-opener-policy": "same-origin",
+          "cross-origin-resource-policy": "same-origin",
+          "origin-agent-cluster": "?1",
+          "referrer-policy": "no-referrer",
+          "strict-transport-security": "max-age=15552000; includeSubDomains",
+          "x-content-type-options": "nosniff",
+          "x-dns-prefetch-control": "off",
+          "x-download-options": "noopen",
+          "x-frame-options": "SAMEORIGIN",
+          "x-permitted-cross-domain-policies": "none",
+          "x-xss-protection": "0",
+          "ratelimit-policy": "100;w=900",
+          "ratelimit-limit": "100",
+          "ratelimit-remaining": "96",
+          "ratelimit-reset": "900",
+          "vary": "Origin, Accept-Encoding",
+          "access-control-allow-credentials": "true",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "129",
+          "etag": "W/\"81-VUDCzAhDjeIHKnn+K+C288erBxc\"",
+          "date": "Thu, 11 Sep 2025 14:05:40 GMT",
+          "connection": "keep-alive",
+          "keep-alive": "timeout=5"
+        },
+        "config": {
+          "method": "post",
+          "url": "http://localhost:3000/api/auth/register",
+          "sentHeaders": {
+            "Content-Type": "application/json"
+          },
+          "sentData": {
+            "email": "testuser@birdsphere.test",
+            "password": "TestPassword123!",
+            "firstName": "Test",
+            "lastName": "User",
+            "username": "testuser_1757599540836",
+            "phone": "+1234567890",
+            "bio": "I am a test user for API testing",
+            "locationCity": "Test City",
+            "locationState": "Test State",
+            "locationCountry": "Test Country",
+            "isBreeder": false
+          }
+        }
+      },
+      "timestamp": "2025-09-11T14:05:40.894Z"
+    },
+    "POST /api/auth/login": {
+      "passed": true,
+      "result": {
+        "success": true,
+        "status": 401,
+        "data": {
+          "error": "Invalid credentials"
+        },
+        "headers": {
+          "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+          "cross-origin-opener-policy": "same-origin",
+          "cross-origin-resource-policy": "same-origin",
+          "origin-agent-cluster": "?1",
+          "referrer-policy": "no-referrer",
+          "strict-transport-security": "max-age=15552000; includeSubDomains",
+          "x-content-type-options": "nosniff",
+          "x-dns-prefetch-control": "off",
+          "x-download-options": "noopen",
+          "x-frame-options": "SAMEORIGIN",
+          "x-permitted-cross-domain-policies": "none",
+          "x-xss-protection": "0",
+          "ratelimit-policy": "100;w=900",
+          "ratelimit-limit": "100",
+          "ratelimit-remaining": "95",
+          "ratelimit-reset": "900",
+          "vary": "Origin, Accept-Encoding",
+          "access-control-allow-credentials": "true",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "31",
+          "etag": "W/\"1f-mRYQ6Yx/raK/ssDeWseqQCiH0yM\"",
+          "date": "Thu, 11 Sep 2025 14:05:40 GMT",
+          "connection": "keep-alive",
+          "keep-alive": "timeout=5"
+        },
+        "config": {
+          "method": "post",
+          "url": "http://localhost:3000/api/auth/login",
+          "sentHeaders": {
+            "Content-Type": "application/json"
+          },
+          "sentData": {
+            "email": "testuser@birdsphere.test",
+            "password": "TestPassword123!"
+          }
+        }
+      },
+      "timestamp": "2025-09-11T14:05:40.916Z"
+    },
+    "GET /api/auth/profile": {
+      "passed": true,
+      "result": {
+        "success": true,
+        "status": 401,
+        "data": {
+          "error": "Access token required"
+        },
+        "headers": {
+          "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+          "cross-origin-opener-policy": "same-origin",
+          "cross-origin-resource-policy": "same-origin",
+          "origin-agent-cluster": "?1",
+          "referrer-policy": "no-referrer",
+          "strict-transport-security": "max-age=15552000; includeSubDomains",
+          "x-content-type-options": "nosniff",
+          "x-dns-prefetch-control": "off",
+          "x-download-options": "noopen",
+          "x-frame-options": "SAMEORIGIN",
+          "x-permitted-cross-domain-policies": "none",
+          "x-xss-protection": "0",
+          "ratelimit-policy": "100;w=900",
+          "ratelimit-limit": "100",
+          "ratelimit-remaining": "94",
+          "ratelimit-reset": "900",
+          "vary": "Origin, Accept-Encoding",
+          "access-control-allow-credentials": "true",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "33",
+          "etag": "W/\"21-6owo7T9qtYgtRGCCIjw6WxSIQI4\"",
+          "date": "Thu, 11 Sep 2025 14:05:40 GMT",
+          "connection": "keep-alive",
+          "keep-alive": "timeout=5"
+        },
+        "config": {
+          "method": "get",
+          "url": "http://localhost:3000/api/auth/profile",
+          "sentHeaders": {},
+          "sentData": null
+        }
+      },
+      "timestamp": "2025-09-11T14:05:40.919Z"
+    },
+    "PUT /api/auth/profile": {
+      "passed": true,
+      "result": {
+        "success": true,
+        "status": 401,
+        "data": {
+          "error": "Access token required"
+        },
+        "headers": {
+          "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+          "cross-origin-opener-policy": "same-origin",
+          "cross-origin-resource-policy": "same-origin",
+          "origin-agent-cluster": "?1",
+          "referrer-policy": "no-referrer",
+          "strict-transport-security": "max-age=15552000; includeSubDomains",
+          "x-content-type-options": "nosniff",
+          "x-dns-prefetch-control": "off",
+          "x-download-options": "noopen",
+          "x-frame-options": "SAMEORIGIN",
+          "x-permitted-cross-domain-policies": "none",
+          "x-xss-protection": "0",
+          "ratelimit-policy": "100;w=900",
+          "ratelimit-limit": "100",
+          "ratelimit-remaining": "93",
+          "ratelimit-reset": "900",
+          "vary": "Origin, Accept-Encoding",
+          "access-control-allow-credentials": "true",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "33",
+          "etag": "W/\"21-6owo7T9qtYgtRGCCIjw6WxSIQI4\"",
+          "date": "Thu, 11 Sep 2025 14:05:40 GMT",
+          "connection": "keep-alive",
+          "keep-alive": "timeout=5"
+        },
+        "config": {
+          "method": "put",
+          "url": "http://localhost:3000/api/auth/profile",
+          "sentHeaders": {
+            "Content-Type": "application/json"
+          },
+          "sentData": {
+            "firstName": "Updated",
+            "lastName": "TestUser",
+            "bio": "Updated bio for testing",
+            "locationCity": "Updated City",
+            "locationState": "Updated State",
+            "locationCountry": "Updated Country",
+            "phone": "+9876543210"
+          }
+        }
+      },
+      "timestamp": "2025-09-11T14:05:40.922Z"
+    },
+    "GET /api/auth/profile (after update)": {
+      "passed": true,
+      "result": {
+        "success": true,
+        "status": 401,
+        "data": {
+          "error": "Access token required"
+        },
+        "headers": {
+          "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+          "cross-origin-opener-policy": "same-origin",
+          "cross-origin-resource-policy": "same-origin",
+          "origin-agent-cluster": "?1",
+          "referrer-policy": "no-referrer",
+          "strict-transport-security": "max-age=15552000; includeSubDomains",
+          "x-content-type-options": "nosniff",
+          "x-dns-prefetch-control": "off",
+          "x-download-options": "noopen",
+          "x-frame-options": "SAMEORIGIN",
+          "x-permitted-cross-domain-policies": "none",
+          "x-xss-protection": "0",
+          "ratelimit-policy": "100;w=900",
+          "ratelimit-limit": "100",
+          "ratelimit-remaining": "92",
+          "ratelimit-reset": "900",
+          "vary": "Origin, Accept-Encoding",
+          "access-control-allow-credentials": "true",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "33",
+          "etag": "W/\"21-6owo7T9qtYgtRGCCIjw6WxSIQI4\"",
+          "date": "Thu, 11 Sep 2025 14:05:40 GMT",
+          "connection": "keep-alive",
+          "keep-alive": "timeout=5"
+        },
+        "config": {
+          "method": "get",
+          "url": "http://localhost:3000/api/auth/profile",
+          "sentHeaders": {},
+          "sentData": null
+        }
+      },
+      "timestamp": "2025-09-11T14:05:40.925Z"
+    },
+    "POST /api/auth/login (re-login)": {
+      "passed": true,
+      "result": {
+        "success": true,
+        "status": 401,
+        "data": {
+          "error": "Invalid credentials"
+        },
+        "headers": {
+          "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+          "cross-origin-opener-policy": "same-origin",
+          "cross-origin-resource-policy": "same-origin",
+          "origin-agent-cluster": "?1",
+          "referrer-policy": "no-referrer",
+          "strict-transport-security": "max-age=15552000; includeSubDomains",
+          "x-content-type-options": "nosniff",
+          "x-dns-prefetch-control": "off",
+          "x-download-options": "noopen",
+          "x-frame-options": "SAMEORIGIN",
+          "x-permitted-cross-domain-policies": "none",
+          "x-xss-protection": "0",
+          "ratelimit-policy": "100;w=900",
+          "ratelimit-limit": "100",
+          "ratelimit-remaining": "91",
+          "ratelimit-reset": "900",
+          "vary": "Origin, Accept-Encoding",
+          "access-control-allow-credentials": "true",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "31",
+          "etag": "W/\"1f-mRYQ6Yx/raK/ssDeWseqQCiH0yM\"",
+          "date": "Thu, 11 Sep 2025 14:05:40 GMT",
+          "connection": "keep-alive",
+          "keep-alive": "timeout=5"
+        },
+        "config": {
+          "method": "post",
+          "url": "http://localhost:3000/api/auth/login",
+          "sentHeaders": {
+            "Content-Type": "application/json"
+          },
+          "sentData": {
+            "email": "testuser@birdsphere.test",
+            "password": "TestPassword123!"
+          }
+        }
+      },
+      "timestamp": "2025-09-11T14:05:40.931Z"
+    },
+    "GET /api/auth/profile (final check)": {
+      "passed": true,
+      "result": {
+        "success": true,
+        "status": 401,
+        "data": {
+          "error": "Access token required"
+        },
+        "headers": {
+          "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+          "cross-origin-opener-policy": "same-origin",
+          "cross-origin-resource-policy": "same-origin",
+          "origin-agent-cluster": "?1",
+          "referrer-policy": "no-referrer",
+          "strict-transport-security": "max-age=15552000; includeSubDomains",
+          "x-content-type-options": "nosniff",
+          "x-dns-prefetch-control": "off",
+          "x-download-options": "noopen",
+          "x-frame-options": "SAMEORIGIN",
+          "x-permitted-cross-domain-policies": "none",
+          "x-xss-protection": "0",
+          "ratelimit-policy": "100;w=900",
+          "ratelimit-limit": "100",
+          "ratelimit-remaining": "90",
+          "ratelimit-reset": "900",
+          "vary": "Origin, Accept-Encoding",
+          "access-control-allow-credentials": "true",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "33",
+          "etag": "W/\"21-6owo7T9qtYgtRGCCIjw6WxSIQI4\"",
+          "date": "Thu, 11 Sep 2025 14:05:40 GMT",
+          "connection": "keep-alive",
+          "keep-alive": "timeout=5"
+        },
+        "config": {
+          "method": "get",
+          "url": "http://localhost:3000/api/auth/profile",
+          "sentHeaders": {},
+          "sentData": null
+        }
+      },
+      "timestamp": "2025-09-11T14:05:40.933Z"
+    },
+    "GET /api/listings/": {
+      "passed": true,
+      "result": {
+        "success": true,
+        "status": 200,
+        "data": {
+          "listings": [
+            {
+              "id": "2d022886-9afb-48b7-9690-f3b3dc919ab4",
+              "title": "Test Listing After Cleanup",
+              "description": "Testing that listing creation still works after code cleanup.",
+              "price": 25,
+              "currency": "USD",
+              "species": "Budgerigar",
+              "breed": null,
+              "age": null,
+              "sex": null,
+              "color": null,
+              "healthStatus": null,
+              "vaccinationStatus": null,
+              "shippingAvailable": false,
+              "localPickupOnly": true,
+              "location": {
+                "city": null,
+                "state": null,
+                "country": null,
+                "coordinates": null
+              },
+              "status": "active",
+              "featured": false,
+              "viewsCount": 0,
+              "mediaCount": "0",
+              "category": {
+                "id": "9e934c16-9429-418b-839d-d874d2b1bfd6",
+                "name": "Budgerigars"
+              },
+              "seller": {
+                "username": "newuser",
+                "firstName": "New",
+                "lastName": "User",
+                "isBreeder": false
+              },
+              "createdAt": "2025-09-09T21:53:20.058Z",
+              "updatedAt": "2025-09-09T21:53:20.058Z"
+            },
+            {
+              "id": "0850ea3d-dc14-4478-a4dd-f5386e6d2569",
+              "title": "Beautiful Budgerigar Pair",
+              "description": "Healthy breeding pair of budgerigars, very friendly and tame.",
+              "price": 50,
+              "currency": "USD",
+              "species": "Budgerigar",
+              "breed": "English Budgie",
+              "age": "6 months",
+              "sex": "Male",
+              "color": null,
+              "healthStatus": null,
+              "vaccinationStatus": null,
+              "shippingAvailable": false,
+              "localPickupOnly": true,
+              "location": {
+                "city": null,
+                "state": null,
+                "country": null,
+                "coordinates": null
+              },
+              "status": "active",
+              "featured": false,
+              "viewsCount": 0,
+              "mediaCount": "0",
+              "category": {
+                "id": "9e934c16-9429-418b-839d-d874d2b1bfd6",
+                "name": "Budgerigars"
+              },
+              "seller": {
+                "username": "newuser",
+                "firstName": "New",
+                "lastName": "User",
+                "isBreeder": false
+              },
+              "createdAt": "2025-09-09T21:42:18.477Z",
+              "updatedAt": "2025-09-09T21:42:18.477Z"
+            },
+            {
+              "id": "b94f382a-e1b3-4ff2-8a40-eb804fc46f85",
+              "title": "Beautiful Blue Budgerigar Pair",
+              "description": "Healthy breeding pair of blue budgerigars. Both birds are 8 months old, very active and have been together for 3 months. Perfect for breeding or as pets.",
+              "price": 79.99,
+              "currency": "USD",
+              "species": "Budgerigar",
+              "breed": "English Budgie",
+              "age": "8 months",
+              "sex": "Unknown",
+              "color": "Blue",
+              "healthStatus": "Excellent - vet checked",
+              "vaccinationStatus": "Up to date",
+              "shippingAvailable": true,
+              "localPickupOnly": false,
+              "location": {
+                "city": "Los Angeles",
+                "state": "California",
+                "country": "USA",
+                "coordinates": {
+                  "latitude": 34.0522,
+                  "longitude": -118.2437
+                }
+              },
+              "status": "active",
+              "featured": false,
+              "viewsCount": 2,
+              "mediaCount": "1",
+              "category": {
+                "id": "9e934c16-9429-418b-839d-d874d2b1bfd6",
+                "name": "Budgerigars"
+              },
+              "seller": {
+                "username": "johnbreeder",
+                "firstName": "John",
+                "lastName": "Breeder",
+                "isBreeder": true
+              },
+              "createdAt": "2025-09-09T18:46:53.043Z",
+              "updatedAt": "2025-09-09T18:49:41.790Z"
+            }
+          ],
+          "pagination": {
+            "page": 1,
+            "limit": 20,
+            "hasMore": false
+          }
+        },
+        "headers": {
+          "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+          "cross-origin-opener-policy": "same-origin",
+          "cross-origin-resource-policy": "same-origin",
+          "origin-agent-cluster": "?1",
+          "referrer-policy": "no-referrer",
+          "strict-transport-security": "max-age=15552000; includeSubDomains",
+          "x-content-type-options": "nosniff",
+          "x-dns-prefetch-control": "off",
+          "x-download-options": "noopen",
+          "x-frame-options": "SAMEORIGIN",
+          "x-permitted-cross-domain-policies": "none",
+          "x-xss-protection": "0",
+          "ratelimit-policy": "100;w=900",
+          "ratelimit-limit": "100",
+          "ratelimit-remaining": "89",
+          "ratelimit-reset": "900",
+          "vary": "Origin, Accept-Encoding",
+          "access-control-allow-credentials": "true",
+          "content-type": "application/json; charset=utf-8",
+          "etag": "W/\"9c9-rcNlah0eVSjn9TlQfNBGDID3Sfw\"",
+          "date": "Thu, 11 Sep 2025 14:05:40 GMT",
+          "connection": "keep-alive",
+          "keep-alive": "timeout=5",
+          "transfer-encoding": "chunked"
+        },
+        "config": {
+          "method": "get",
+          "url": "http://localhost:3000/api/listings/",
+          "sentHeaders": {},
+          "sentData": null
+        }
+      },
+      "timestamp": "2025-09-11T14:05:40.943Z"
+    },
+    "GET /api/listings/categories": {
+      "passed": true,
+      "result": {
+        "success": true,
+        "status": 200,
+        "data": {
+          "categories": [
+            {
+              "id": "2cba5c84-f826-464e-bf29-028b4929a6f8",
+              "name": "Birds",
+              "description": "All types of birds",
+              "subcategories": [
+                {
+                  "id": "9e934c16-9429-418b-839d-d874d2b1bfd6",
+                  "name": "Budgerigars",
+                  "description": "Budgies and parakeets"
+                },
+                {
+                  "id": "c73f2487-fb38-416c-9683-d293976f0792",
+                  "name": "Cockatiels",
+                  "description": "All cockatiel varieties"
+                },
+                {
+                  "id": "badaabd2-bbb5-4090-9022-53c9fdf633e2",
+                  "name": "Finches",
+                  "description": "Canaries, zebra finches, and other finches"
+                },
+                {
+                  "id": "ccb8f9a0-0869-4c5b-af81-ce6d23a2cabf",
+                  "name": "Game Birds",
+                  "description": "Chickens, quail, and other game birds"
+                },
+                {
+                  "id": "1dbdea3c-b4ca-4084-ba06-3cf44479787b",
+                  "name": "Lovebirds",
+                  "description": "All lovebird species"
+                },
+                {
+                  "id": "9ffe28bd-6d95-444d-86a6-5706c59bdc71",
+                  "name": "Parrots",
+                  "description": "Macaws, cockatoos, conures, and other parrots"
+                }
+              ]
+            },
+            {
+              "id": "e878671f-b77c-43e9-a1d2-86dd444e9deb",
+              "name": "Exotic Pets",
+              "description": "Unusual and exotic animals",
+              "subcategories": []
+            },
+            {
+              "id": "1261b017-c301-4df3-9ac0-cb6e059fb323",
+              "name": "Reptiles",
+              "description": "Snakes, lizards, turtles, and other reptiles",
+              "subcategories": [
+                {
+                  "id": "b419e148-9d8c-4cf5-a60a-e8eb9d92c067",
+                  "name": "Lizards",
+                  "description": "Bearded dragons, geckos, and other lizards"
+                },
+                {
+                  "id": "e691cf0c-8e39-4ff4-b8f2-981c561d0f80",
+                  "name": "Snakes",
+                  "description": "Ball pythons, corn snakes, and other serpents"
+                },
+                {
+                  "id": "d13d7324-fc18-4d60-889b-c9bfe05e3e31",
+                  "name": "Turtles & Tortoises",
+                  "description": "Aquatic and terrestrial chelonians"
+                }
+              ]
+            },
+            {
+              "id": "27dad85d-9a39-4938-baa6-fe9fc853e0d3",
+              "name": "Small Mammals",
+              "description": "Rabbits, ferrets, guinea pigs, and other small mammals",
+              "subcategories": [
+                {
+                  "id": "60fe975b-fe68-4ef6-b9c9-4020098dabde",
+                  "name": "Ferrets",
+                  "description": "Domestic ferrets"
+                },
+                {
+                  "id": "2dcb0f69-0655-4bf3-b18d-0a5afa9a18c1",
+                  "name": "Guinea Pigs",
+                  "description": "Cavies and guinea pig varieties"
+                },
+                {
+                  "id": "79de2d86-25b6-4019-b468-691ddd2ea524",
+                  "name": "Rabbits",
+                  "description": "Domestic rabbits of all breeds"
+                }
+              ]
+            }
+          ]
+        },
+        "headers": {
+          "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+          "cross-origin-opener-policy": "same-origin",
+          "cross-origin-resource-policy": "same-origin",
+          "origin-agent-cluster": "?1",
+          "referrer-policy": "no-referrer",
+          "strict-transport-security": "max-age=15552000; includeSubDomains",
+          "x-content-type-options": "nosniff",
+          "x-dns-prefetch-control": "off",
+          "x-download-options": "noopen",
+          "x-frame-options": "SAMEORIGIN",
+          "x-permitted-cross-domain-policies": "none",
+          "x-xss-protection": "0",
+          "ratelimit-policy": "100;w=900",
+          "ratelimit-limit": "100",
+          "ratelimit-remaining": "88",
+          "ratelimit-reset": "900",
+          "vary": "Origin, Accept-Encoding",
+          "access-control-allow-credentials": "true",
+          "content-type": "application/json; charset=utf-8",
+          "etag": "W/\"78d-ktPWcH9KGMdBXiWFLUTL/URW36Q\"",
+          "date": "Thu, 11 Sep 2025 14:05:40 GMT",
+          "connection": "keep-alive",
+          "keep-alive": "timeout=5",
+          "transfer-encoding": "chunked"
+        },
+        "config": {
+          "method": "get",
+          "url": "http://localhost:3000/api/listings/categories",
+          "sentHeaders": {},
+          "sentData": null
+        }
+      },
+      "timestamp": "2025-09-11T14:05:40.947Z"
+    },
+    "GET /api/users/": {
+      "passed": true,
+      "result": {
+        "success": true,
+        "status": 200,
+        "data": {
+          "users": [],
+          "pagination": {
+            "page": 1,
+            "limit": 20,
+            "hasMore": false
+          }
+        },
+        "headers": {
+          "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+          "cross-origin-opener-policy": "same-origin",
+          "cross-origin-resource-policy": "same-origin",
+          "origin-agent-cluster": "?1",
+          "referrer-policy": "no-referrer",
+          "strict-transport-security": "max-age=15552000; includeSubDomains",
+          "x-content-type-options": "nosniff",
+          "x-dns-prefetch-control": "off",
+          "x-download-options": "noopen",
+          "x-frame-options": "SAMEORIGIN",
+          "x-permitted-cross-domain-policies": "none",
+          "x-xss-protection": "0",
+          "ratelimit-policy": "100;w=900",
+          "ratelimit-limit": "100",
+          "ratelimit-remaining": "87",
+          "ratelimit-reset": "900",
+          "vary": "Origin, Accept-Encoding",
+          "access-control-allow-credentials": "true",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "63",
+          "etag": "W/\"3f-xy0xL7FZwmkWHi8J0g5bgEax/r4\"",
+          "date": "Thu, 11 Sep 2025 14:05:40 GMT",
+          "connection": "keep-alive",
+          "keep-alive": "timeout=5"
+        },
+        "config": {
+          "method": "get",
+          "url": "http://localhost:3000/api/users/",
+          "sentHeaders": {},
+          "sentData": null
+        }
+      },
+      "timestamp": "2025-09-11T14:05:40.950Z"
+    },
+    "GET /api/location/search": {
+      "passed": true,
+      "result": {
+        "success": true,
+        "status": 400,
+        "data": {
+          "error": "Search query must be at least 2 characters long"
+        },
+        "headers": {
+          "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+          "cross-origin-opener-policy": "same-origin",
+          "cross-origin-resource-policy": "same-origin",
+          "origin-agent-cluster": "?1",
+          "referrer-policy": "no-referrer",
+          "strict-transport-security": "max-age=15552000; includeSubDomains",
+          "x-content-type-options": "nosniff",
+          "x-dns-prefetch-control": "off",
+          "x-download-options": "noopen",
+          "x-frame-options": "SAMEORIGIN",
+          "x-permitted-cross-domain-policies": "none",
+          "x-xss-protection": "0",
+          "ratelimit-policy": "100;w=900",
+          "ratelimit-limit": "100",
+          "ratelimit-remaining": "86",
+          "ratelimit-reset": "900",
+          "vary": "Origin, Accept-Encoding",
+          "access-control-allow-credentials": "true",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "59",
+          "etag": "W/\"3b-O1QDUKK7WP5xyraeeAcd/bfhMrU\"",
+          "date": "Thu, 11 Sep 2025 14:05:40 GMT",
+          "connection": "keep-alive",
+          "keep-alive": "timeout=5"
+        },
+        "config": {
+          "method": "get",
+          "url": "http://localhost:3000/api/location/search?q=Test+City",
+          "sentHeaders": {},
+          "sentData": null
+        }
+      },
+      "timestamp": "2025-09-11T14:05:40.954Z"
+    },
+    "GET /api/chat/test": {
+      "passed": true,
+      "result": {
+        "success": true,
+        "status": 200,
+        "data": {
+          "message": "Chat system is working!",
+          "timestamp": "2025-09-11T14:05:40.956Z",
+          "socketEnabled": true
+        },
+        "headers": {
+          "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+          "cross-origin-opener-policy": "same-origin",
+          "cross-origin-resource-policy": "same-origin",
+          "origin-agent-cluster": "?1",
+          "referrer-policy": "no-referrer",
+          "strict-transport-security": "max-age=15552000; includeSubDomains",
+          "x-content-type-options": "nosniff",
+          "x-dns-prefetch-control": "off",
+          "x-download-options": "noopen",
+          "x-frame-options": "SAMEORIGIN",
+          "x-permitted-cross-domain-policies": "none",
+          "x-xss-protection": "0",
+          "ratelimit-policy": "100;w=900",
+          "ratelimit-limit": "100",
+          "ratelimit-remaining": "85",
+          "ratelimit-reset": "900",
+          "vary": "Origin, Accept-Encoding",
+          "access-control-allow-credentials": "true",
+          "content-type": "application/json; charset=utf-8",
+          "content-length": "97",
+          "etag": "W/\"61-ROxGE+CKb/mkJhub+nLX2gFDieI\"",
+          "date": "Thu, 11 Sep 2025 14:05:40 GMT",
+          "connection": "keep-alive",
+          "keep-alive": "timeout=5"
+        },
+        "config": {
+          "method": "get",
+          "url": "http://localhost:3000/api/chat/test",
+          "sentHeaders": {},
+          "sentData": null
+        }
+      },
+      "timestamp": "2025-09-11T14:05:40.956Z"
+    }
+  },
+  "authFlow": {
+    "registrationData": null,
+    "loginData": null,
+    "profileData": null,
+    "tokens": []
+  }
+}
