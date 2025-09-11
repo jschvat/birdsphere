@@ -141,6 +141,20 @@ class User {
     return result.rows;
   }
 
+  static async updateProfileImage(id, profileImageUrl) {
+    const query = `
+      UPDATE users 
+      SET profile_image = $1, updated_at = NOW()
+      WHERE id = $2
+      RETURNING id, email, first_name, last_name, username, phone, bio, profile_image,
+                location_city, location_state, location_country, latitude, longitude,
+                is_breeder, is_verified, updated_at
+    `;
+    
+    const result = await db.query(query, [profileImageUrl, id]);
+    return result.rows[0];
+  }
+
   static async delete(id) {
     const query = 'DELETE FROM users WHERE id = $1';
     await db.query(query, [id]);

@@ -8,6 +8,7 @@ const messageRoutes = require('./messages');
 const userRoutes = require('./users');
 const locationRoutes = require('./location');
 const chatRoutes = require('./chat');
+const uploadRoutes = require('./upload');
 
 // Mount routes
 router.use('/auth', authRoutes);
@@ -16,6 +17,7 @@ router.use('/messages', messageRoutes);
 router.use('/users', userRoutes);
 router.use('/location', locationRoutes);
 router.use('/chat', chatRoutes);
+router.use('/upload', uploadRoutes);
 
 // API info endpoint
 router.get('/', (req, res) => {

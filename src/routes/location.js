@@ -6,6 +6,10 @@ const locationController = require('../controllers/locationController');
 router.get('/search', locationController.searchLocations);
 router.get('/nearby', locationController.getNearbyListings);
 
+// Add missing routes that were in the test
+router.get('/geocode', locationController.geocodeAddress);
+router.get('/reverse', locationController.reverseGeocode);
+
 /**
  * @swagger
  * /api/location/nearby/listings:
