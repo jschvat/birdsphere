@@ -79,7 +79,7 @@ class User {
         isBreeder: user.is_breeder 
       },
       process.env.JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: '90d' }
     );
   }
 

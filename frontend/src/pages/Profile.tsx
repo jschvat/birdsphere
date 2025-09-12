@@ -5,7 +5,7 @@ import { uploadService } from '../services/uploadService';
 import { User } from '../types';
 
 const Profile: React.FC = () => {
-  const { user, updateProfile, logout, isLoading, error, clearError } = useAuth();
+  const { user, updateProfile, logout, refreshUser, isLoading, error, clearError } = useAuth();
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Partial<User>>({});
@@ -18,7 +18,8 @@ const Profile: React.FC = () => {
     console.log('Profile useEffect - Auth state:', {
       user: !!user,
       isLoading,
-      userId: user?.id
+      userId: user?.id,
+      profileImage: user?.profileImage
     });
 
     if (!user && !isLoading) {
@@ -33,23 +34,32 @@ const Profile: React.FC = () => {
     }
     
     console.log('Profile component - user data:', JSON.stringify(user, null, 2));
-    console.log('Location data:', {
-      locationCity: user!.locationCity,
-      locationState: user!.locationState,
-      locationCountry: user!.locationCountry
+    console.log('Profile image field specifically:', user.profileImage);
+    
+    // Reset avatar preview when user changes (e.g., after logout/login)
+    setAvatarPreview(null);
+    
+    // Reset form data
+    setFormData({
+      firstName: user.firstName || '',
+      lastName: user.lastName || '',
+      phone: user.phone || '',
+      bio: user.bio || '',
+      locationCity: user.locationCity || '',
+      locationState: user.locationState || '',
+      locationCountry: user.locationCountry || '',
+      isBreeder: user.isBreeder || false,
     });
     
-    setFormData({
-      firstName: user!.firstName || '',
-      lastName: user!.lastName || '',
-      phone: user!.phone || '',
-      bio: user!.bio || '',
-      locationCity: user!.locationCity || '',
-      locationState: user!.locationState || '',
-      locationCountry: user!.locationCountry || '',
-      isBreeder: user!.isBreeder || false,
+    // Force a re-render by logging the avatar URL calculation
+    console.log('Avatar URL calculation:', {
+      hasAvatarPreview: !!avatarPreview,
+      userProfileImage: user.profileImage,
+      finalAvatarUrl: user.profileImage ? 
+        (user.profileImage.startsWith('http') ? user.profileImage : `http://localhost:3000${user.profileImage}`) : 
+        null
     });
-  }, [user, navigate, isLoading]);
+  }, [user?.id, user?.profileImage, navigate, isLoading]); // More specific dependencies
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -111,9 +121,14 @@ const Profile: React.FC = () => {
       
       // Upload avatar
       const response = await uploadService.uploadAvatar(file);
+      console.log('Avatar upload response:', response);
       
-      // Update user profile with new avatar URL
-      await updateProfile({ profileImage: response.avatarUrl });
+      // Refresh user data from server to get the updated profile image
+      await refreshUser();
+      console.log('User data refreshed after upload');
+      
+      // Don't clear the preview immediately - let it stay until we're sure the user data is updated
+      // The preview will be cleared automatically when the component re-renders with updated user data
       
       setUpdateSuccess(true);
       setTimeout(() => setUpdateSuccess(false), 3000);
@@ -127,12 +142,36 @@ const Profile: React.FC = () => {
   };
 
   const getAvatarUrl = () => {
-    if (avatarPreview) return avatarPreview;
-    if (user?.profileImage) {
-      return user.profileImage.startsWith('http') 
+    console.log('getAvatarUrl called:', {
+      avatarPreview,
+      userProfileImage: user?.profileImage,
+      userId: user?.id,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Priority 1: Avatar preview (when user is uploading new avatar)
+    if (avatarPreview && avatarPreview.trim()) {
+      console.log('✅ Using avatar preview:', avatarPreview);
+      return avatarPreview;
+    }
+    
+    // Priority 2: User's profile image from database
+    if (user?.profileImage && user.profileImage.trim()) {
+      const avatarUrl = user.profileImage.startsWith('http') 
         ? user.profileImage 
         : `http://localhost:3000${user.profileImage}`;
+      console.log('✅ Using user profile image:', avatarUrl);
+      
+      // Clear the preview now that we have a valid user profile image to show
+      if (avatarPreview) {
+        console.log('🔄 Clearing preview since we have updated user profile image');
+        setTimeout(() => setAvatarPreview(null), 0);
+      }
+      
+      return avatarUrl;
     }
+    
+    console.log('❌ No avatar found - user has no profile image');
     return null;
   };
 

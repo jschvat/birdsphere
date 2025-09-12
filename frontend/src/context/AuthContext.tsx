@@ -10,6 +10,7 @@ interface AuthContextType {
   register: (userData: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (userData: Partial<User>) => Promise<void>;
+  refreshUser: () => Promise<void>;
   error: string | null;
   clearError: () => void;
 }
@@ -36,31 +37,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        const currentUser = authService.getCurrentUser();
-        const token = authService.getToken();
-
-        console.log('AuthContext - Initializing auth:', {
-          hasUser: !!currentUser,
-          hasToken: !!token,
-          user: currentUser
-        });
-
-        if (currentUser && token) {
-          try {
-            console.log('AuthContext - Fetching fresh profile data...');
-            const updatedUser = await authService.getProfile();
-            console.log('AuthContext - Setting user:', updatedUser);
-            setUser(updatedUser);
-          } catch (err) {
-            console.error('AuthContext - Profile fetch failed, logging out:', err);
-            authService.logout();
-            setUser(null);
-          }
+        console.log('AuthContext - Checking authentication status...');
+        
+        // Only check authentication if we're not on the login page
+        // This prevents unnecessary API calls that would trigger 401 responses
+        if (window.location.pathname === '/login') {
+          console.log('AuthContext - On login page, skipping auth check');
+          setUser(null);
+          setIsLoading(false);
+          return;
+        }
+        
+        // Try to get current user profile using httpOnly cookie
+        const currentUser = await authService.checkAuthentication();
+        
+        if (currentUser) {
+          console.log('AuthContext - User authenticated:', currentUser);
+          setUser(currentUser);
         } else {
-          console.log('AuthContext - No user or token, staying logged out');
+          console.log('AuthContext - User not authenticated');
+          setUser(null);
         }
       } catch (err) {
         console.error('Auth initialization error:', err);
+        setUser(null);
+        // Don't redirect here - let the axios interceptor handle it
       } finally {
         setIsLoading(false);
         console.log('AuthContext - Initialization complete, isLoading set to false');
@@ -103,10 +104,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = async () => {
     try {
       await authService.logout();
+      // Force clear all user state
       setUser(null);
       setError(null);
+      console.log('AuthContext - User logged out, state cleared');
     } catch (err) {
       console.error('Logout error:', err);
+      // Even if logout fails, clear local state
+      setUser(null);
+      setError(null);
     }
   };
 
@@ -122,6 +128,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const refreshUser = async () => {
+    try {
+      const currentUser = await authService.checkAuthentication();
+      if (currentUser) {
+        console.log('AuthContext - User data refreshed:', currentUser);
+        setUser(currentUser);
+      }
+    } catch (err) {
+      console.error('Failed to refresh user data:', err);
+    }
+  };
+
   const clearError = () => {
     setError(null);
   };
@@ -134,6 +152,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     register,
     logout,
     updateProfile,
+    refreshUser,
     error,
     clearError,
   };

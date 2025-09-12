@@ -140,6 +140,29 @@ router.post('/login', validate(loginSchema), authController.login);
 
 /**
  * @swagger
+ * /api/auth/logout:
+ *   post:
+ *     tags: [Authentication]
+ *     summary: Logout user
+ *     description: Logout user and revoke authentication token
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Logout successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Logged out successfully
+ */
+router.post('/logout', authController.logout);
+
+/**
+ * @swagger
  * /api/auth/profile:
  *   get:
  *     tags: [Authentication]

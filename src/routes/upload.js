@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const { authenticateToken } = require('../middleware/auth');
 const User = require('../models/User');
 
@@ -13,16 +14,16 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Configure multer for file uploads
+// Configure multer for file uploads with completely random UUID filenames
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadsDir);
   },
   filename: (req, file, cb) => {
-    // Create unique filename
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    // Generate completely random UUID filename
+    const randomUUID = crypto.randomUUID();
     const extension = path.extname(file.originalname);
-    cb(null, `avatar-${req.user.id}-${uniqueSuffix}${extension}`);
+    cb(null, `${randomUUID}${extension}`);
   }
 });
 
@@ -61,7 +62,7 @@ router.get('/avatar', authenticateToken, async (req, res) => {
   }
 });
 
-// Upload avatar route
+// Upload avatar route with random UUID persistence
 router.post('/avatar', authenticateToken, (req, res) => {
   upload.single('avatar')(req, res, async (err) => {
     if (err) {
@@ -78,16 +79,45 @@ router.post('/avatar', authenticateToken, (req, res) => {
     }
 
     try {
-      // Update user's profile_image in database
+      // Get current user to check for existing avatar
+      const currentUser = await User.findById(req.user.id);
+      
+      // Delete old avatar file if it exists
+      if (currentUser && currentUser.profile_image) {
+        const oldAvatarPath = path.join(__dirname, '../../', currentUser.profile_image);
+        if (fs.existsSync(oldAvatarPath)) {
+          fs.unlinkSync(oldAvatarPath);
+          console.log('Deleted old avatar:', oldAvatarPath);
+        }
+      }
+
+      // Update user's profile_image in database with new random UUID filename
       const avatarUrl = `/uploads/avatars/${req.file.filename}`;
-      await User.updateProfileImage(req.user.id, avatarUrl);
+      const updatedUser = await User.updateProfileImage(req.user.id, avatarUrl);
+      
+      console.log('Avatar uploaded successfully:', {
+        userId: req.user.id,
+        filename: req.file.filename,
+        avatarUrl: avatarUrl,
+        fileSize: req.file.size
+      });
 
       res.json({
         message: 'Avatar uploaded successfully',
-        avatarUrl
+        avatarUrl,
+        user: {
+          id: updatedUser.id,
+          profileImage: updatedUser.profile_image
+        }
       });
     } catch (error) {
       console.error('Avatar upload error:', error);
+      
+      // Clean up uploaded file on error
+      if (req.file && req.file.path && fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+      
       res.status(500).json({ error: 'Failed to update profile image' });
     }
   });

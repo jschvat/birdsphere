@@ -28,6 +28,7 @@ const morgan = require('morgan');          // HTTP request logging
 const rateLimit = require('express-rate-limit'); // Rate limiting
 const session = require('express-session'); // Session management
 const RedisStore = require('connect-redis').default; // Redis session store
+const cookieParser = require('cookie-parser'); // Cookie parsing middleware
 const { createServer } = require('http');   // HTTP server for Socket.IO
 const { Server } = require('socket.io');   // Real-time WebSocket communication
 
@@ -47,7 +48,14 @@ const io = new Server(server, {
     // Allow different origins based on environment
     origin: process.env.NODE_ENV === 'production' 
       ? ['https://birdsphere.com'] 
-      : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'],
+      : [
+          'http://localhost:3000', 
+          'http://localhost:3001', 
+          'http://localhost:3002',
+          'http://127.0.0.1:3000',
+          'http://127.0.0.1:3001', 
+          'http://127.0.0.1:3002'
+        ],
     credentials: true // Allow cookies and authentication headers
   }
 });
@@ -59,7 +67,7 @@ const PORT = process.env.PORT || 3000;
 // Prevents abuse by limiting requests per IP address
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes time window
-  max: 100, // Maximum 100 requests per IP per window
+  max: process.env.NODE_ENV === 'development' ? 1000 : 100, // Higher limit for development
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true, // Return rate limit info in headers
   legacyHeaders: false   // Disable X-RateLimit-* headers
@@ -71,7 +79,16 @@ const limiter = rateLimit({
  */
 
 // Security middleware - sets various HTTP headers for protection
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "http://localhost:3000", "http://localhost:3002"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https:"],
+      scriptSrc: ["'self'"],
+    },
+  },
+}));
 
 // Compression middleware - gzips responses for better performance
 app.use(compression());
@@ -87,8 +104,19 @@ app.use(limiter);
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
     ? ['https://birdsphere.com'] 
-    : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'],
+    : [
+        'http://localhost:3000', 
+        'http://localhost:3001', 
+        'http://localhost:3002',
+        'http://127.0.0.1:3000',
+        'http://127.0.0.1:3001', 
+        'http://127.0.0.1:3002'
+      ],
   credentials: true, // Allow cookies and auth headers
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-fingerprint', 'Accept', 'Origin'],
+  preflightContinue: false, // Pass control to the next handler
+  optionsSuccessStatus: 200 // Some legacy browsers choke on 204
 }));
 
 // Body parsing middleware
@@ -96,6 +124,8 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 // Parse URL-encoded form data
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Parse cookies
+app.use(cookieParser(process.env.COOKIE_SECRET || 'birdsphere-cookie-secret'));
 
 // Session management with Redis store
 // Provides persistent user sessions across server restarts
@@ -133,11 +163,44 @@ app.use('/api', apiRoutes);
 // Serve uploaded files (images, documents) statically
 // Files are accessible at /uploads/<filename>
 app.use('/uploads', (req, res, next) => {
-  res.header('Access-Control-Allow-Origin', process.env.NODE_ENV === 'production' 
-    ? 'https://birdsphere.com' 
-    : 'http://localhost:3002');
-  res.header('Access-Control-Allow-Methods', 'GET');
+  const allowedOrigins = process.env.NODE_ENV === 'production' 
+    ? ['https://birdsphere.com']
+    : [
+        'http://localhost:3000', 
+        'http://localhost:3001', 
+        'http://localhost:3002',
+        'http://127.0.0.1:3000',
+        'http://127.0.0.1:3001', 
+        'http://127.0.0.1:3002'
+      ];
+  
+  const origin = req.headers.origin;
+  console.log('Static file request - Origin:', origin, 'File:', req.path);
+  
+  if (allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+    console.log('✅ CORS allowed for origin:', origin);
+  } else {
+    // Allow any origin for image files in development - but set specific headers
+    res.header('Access-Control-Allow-Origin', 'http://localhost:3002');
+    res.header('Access-Control-Allow-Credentials', 'false');
+    console.log('🔧 Using fallback CORS for origin:', origin);
+  }
+  
+  res.header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  res.header('Cache-Control', 'public, max-age=31536000'); // Cache images for 1 year
+  
+  // Override Helmet's Cross-Origin-Resource-Policy to allow cross-origin requests
+  res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+  
+  // Handle preflight OPTIONS requests
+  if (req.method === 'OPTIONS') {
+    console.log('📋 Handling OPTIONS preflight for:', req.path);
+    return res.status(200).end();
+  }
+  
   next();
 }, express.static(process.env.UPLOAD_PATH || 'uploads'));
 

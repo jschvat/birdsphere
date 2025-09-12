@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const { cache, cacheKeys } = require('../middleware/cache');
+const tokenService = require('../services/tokenService');
 
 const register = async (req, res) => {
   try {
@@ -18,7 +19,28 @@ const register = async (req, res) => {
 
     // Create new user
     const user = await User.create(userData);
-    const token = User.generateToken(user);
+    
+    // Generate secure token with Redis storage
+    const deviceInfo = {
+      userAgent: req.headers['user-agent'],
+      ip: req.ip || req.connection.remoteAddress,
+      fingerprint: req.headers['x-fingerprint'] || ''
+    };
+    
+    const tokenId = await tokenService.storeToken(user.id, null, deviceInfo);
+    const token = tokenService.generateSecureToken(user, tokenId);
+    
+    // Update token in Redis with actual JWT
+    await tokenService.storeToken(user.id, token, deviceInfo, tokenId);
+
+    // Set secure httpOnly cookie
+    res.cookie('authToken', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 90 * 24 * 60 * 60 * 1000, // 90 days
+      path: '/'
+    });
 
     res.status(201).json({
       message: 'User registered successfully',
@@ -49,7 +71,7 @@ const register = async (req, res) => {
         isVerified: user.is_verified,
         createdAt: user.created_at
       },
-      token
+      token // Still include in response for backward compatibility
     });
   } catch (error) {
     console.error('Registration error:', error);
@@ -76,8 +98,27 @@ const login = async (req, res) => {
     // Update last login
     await User.updateLastLogin(user.id);
 
-    // Generate token
-    const token = User.generateToken(user);
+    // Generate secure token with Redis storage
+    const deviceInfo = {
+      userAgent: req.headers['user-agent'],
+      ip: req.ip || req.connection.remoteAddress,
+      fingerprint: req.headers['x-fingerprint'] || ''
+    };
+    
+    const tokenId = await tokenService.storeToken(user.id, null, deviceInfo);
+    const token = tokenService.generateSecureToken(user, tokenId);
+    
+    // Update token in Redis with actual JWT
+    await tokenService.storeToken(user.id, token, deviceInfo, tokenId);
+
+    // Set secure httpOnly cookie
+    res.cookie('authToken', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 90 * 24 * 60 * 60 * 1000, // 90 days
+      path: '/'
+    });
 
     res.json({
       message: 'Login successful',
@@ -109,7 +150,7 @@ const login = async (req, res) => {
         createdAt: user.created_at,
         lastLogin: user.last_login
       },
-      token
+      token // Still include in response for backward compatibility
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -236,9 +277,47 @@ const updateProfile = async (req, res) => {
   }
 };
 
+const logout = async (req, res) => {
+  try {
+    // Get token from cookie or Authorization header
+    const token = req.cookies.authToken || (req.headers.authorization && req.headers.authorization.split(' ')[1]);
+    
+    if (token) {
+      const tokenId = tokenService.extractTokenId(token);
+      if (tokenId) {
+        await tokenService.revokeToken(tokenId);
+      }
+    }
+    
+    // Clear the httpOnly cookie
+    res.clearCookie('authToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/'
+    });
+    
+    res.json({ message: 'Logged out successfully' });
+  } catch (error) {
+    console.error('Logout error:', error);
+    res.status(500).json({ error: 'Logout failed' });
+  }
+};
+
 const deleteAccount = async (req, res) => {
   try {
+    // Revoke all user tokens before deleting account
+    await tokenService.revokeAllUserTokens(req.user.id);
     await User.delete(req.user.id);
+    
+    // Clear the httpOnly cookie
+    res.clearCookie('authToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/'
+    });
+    
     res.json({ message: 'Account deleted successfully' });
   } catch (error) {
     console.error('Delete account error:', error);
@@ -249,6 +328,7 @@ const deleteAccount = async (req, res) => {
 module.exports = {
   register,
   login,
+  logout,
   getProfile,
   updateProfile,
   deleteAccount
