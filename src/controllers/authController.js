@@ -1,23 +1,100 @@
+/**
+ * Authentication Controller Module
+ * 
+ * Handles all authentication-related HTTP endpoints for the BirdSphere application.
+ * Implements secure user registration, login, profile management, and session handling
+ * using JWT tokens stored in httpOnly cookies with Redis-based token management.
+ * 
+ * Key Features:
+ * - Secure user registration with validation and conflict checking
+ * - JWT-based authentication with httpOnly cookie storage
+ * - Token management with Redis storage and device tracking
+ * - Profile management with cache invalidation
+ * - Session management and secure logout
+ * - Account deletion with token revocation
+ * 
+ * Security Implementations:
+ * - Password hashing with bcrypt (handled by User model)
+ * - JWT tokens with secure random token IDs
+ * - httpOnly cookies preventing XSS token theft
+ * - Device fingerprinting and IP tracking
+ * - Automatic token revocation on logout/deletion
+ * - Input validation through middleware
+ * 
+ * Performance Features:
+ * - Redis caching for user data and sessions
+ * - Cache invalidation on profile updates
+ * - Optimized database queries through User model
+ * - Efficient token storage and retrieval
+ * 
+ * API Endpoints:
+ * - POST /register - Create new user account
+ * - POST /login - Authenticate existing user  
+ * - GET /profile - Get current user profile
+ * - PUT /profile - Update user profile information
+ * - POST /logout - End user session
+ * - DELETE /account - Permanently delete user account
+ * 
+ * @fileoverview Authentication controller with JWT and Redis-based session management
+ * @author Birdsphere Development Team
+ */
+
 const User = require('../models/User');
 const { cache, cacheKeys } = require('../middleware/cache');
 const tokenService = require('../services/tokenService');
 
+/**
+ * User Registration Endpoint
+ * 
+ * Creates a new user account with comprehensive validation, conflict checking,
+ * and automatic authentication. Implements secure token generation and storage
+ * using JWT with httpOnly cookies and Redis-based session management.
+ * 
+ * Registration Flow:
+ * 1. Extract validated user data from middleware
+ * 2. Check for existing users by email and username
+ * 3. Create new user with encrypted password
+ * 4. Generate secure JWT token with device tracking
+ * 5. Store token in Redis with device information
+ * 6. Set httpOnly authentication cookie
+ * 7. Return user profile and token (for compatibility)
+ * 
+ * Security Features:
+ * - Input validation through middleware (req.validatedData)
+ * - Email and username uniqueness enforcement
+ * - Password encryption handled by User model
+ * - Secure token generation with random token IDs
+ * - Device fingerprinting and IP tracking
+ * - httpOnly cookies preventing XSS attacks
+ * - Redis-based token storage and management
+ * 
+ * Error Handling:
+ * - 409 Conflict: Email or username already exists
+ * - 500 Internal Server Error: Database or server errors
+ * 
+ * @param {Object} req - Express request object
+ * @param {Object} req.validatedData - Validated user registration data from middleware
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} JSON response with user data and authentication token
+ */
 const register = async (req, res) => {
   try {
+    // Extract pre-validated user data from validation middleware
     const userData = req.validatedData;
 
-    // Check if user already exists
+    // Conflict Prevention: Check if email is already registered
     const existingUserByEmail = await User.findByEmail(userData.email);
     if (existingUserByEmail) {
       return res.status(409).json({ error: 'Email already registered' });
     }
 
+    // Conflict Prevention: Check if username is already taken
     const existingUserByUsername = await User.findByUsername(userData.username);
     if (existingUserByUsername) {
       return res.status(409).json({ error: 'Username already taken' });
     }
 
-    // Create new user
+    // Create new user account (password hashing handled by User model)
     const user = await User.create(userData);
     
     // Generate secure token with Redis storage
@@ -165,7 +242,6 @@ const getProfile = async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
     
-    console.log('getProfile - Raw user from database:', JSON.stringify(user, null, 2));
 
     const response = {
       id: user.id,
@@ -205,8 +281,6 @@ const getProfile = async (req, res) => {
 
 const updateProfile = async (req, res) => {
   try {
-    console.log('updateProfile - Request body:', JSON.stringify(req.body, null, 2));
-    console.log('updateProfile - Validated data:', JSON.stringify(req.validatedData, null, 2));
     
     const updates = {};
     const userData = req.validatedData;
@@ -224,15 +298,12 @@ const updateProfile = async (req, res) => {
 
     for (const [key, value] of Object.entries(userData)) {
       const dbField = fieldMapping[key] || key;
-      console.log(`updateProfile - Mapping ${key} to ${dbField}`);
       updates[dbField] = value;
     }
 
-    console.log('updateProfile - Updates to apply:', JSON.stringify(updates, null, 2));
     
     const updatedUser = await User.update(req.user.id, updates);
     
-    console.log('updateProfile - Updated user from database:', JSON.stringify(updatedUser, null, 2));
     
     // Invalidate user-related caches
     await Promise.all([

@@ -87,7 +87,6 @@ router.post('/avatar', authenticateToken, (req, res) => {
         const oldAvatarPath = path.join(__dirname, '../../', currentUser.profile_image);
         if (fs.existsSync(oldAvatarPath)) {
           fs.unlinkSync(oldAvatarPath);
-          console.log('Deleted old avatar:', oldAvatarPath);
         }
       }
 
@@ -95,12 +94,6 @@ router.post('/avatar', authenticateToken, (req, res) => {
       const avatarUrl = `/uploads/avatars/${req.file.filename}`;
       const updatedUser = await User.updateProfileImage(req.user.id, avatarUrl);
       
-      console.log('Avatar uploaded successfully:', {
-        userId: req.user.id,
-        filename: req.file.filename,
-        avatarUrl: avatarUrl,
-        fileSize: req.file.size
-      });
 
       res.json({
         message: 'Avatar uploaded successfully',

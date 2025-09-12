@@ -119,12 +119,8 @@ class User {
                 is_breeder, is_verified, updated_at
     `;
 
-    console.log('User.update - SQL Query:', query);
-    console.log('User.update - Values:', values);
     
     const result = await db.query(query, values);
-    console.log('User.update - Result rowCount:', result.rowCount);
-    console.log('User.update - Result rows:', result.rows);
     
     if (result.rowCount === 0) {
       throw new Error('User not found or no changes made');

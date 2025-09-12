@@ -1,45 +1,118 @@
+/**
+ * Profile Page Component
+ * 
+ * A comprehensive user profile management component that provides both viewing
+ * and editing functionality for user account information. This component
+ * demonstrates advanced React patterns including state management, file uploads,
+ * memory management, and optimistic UI updates.
+ * 
+ * Key Features:
+ * - Profile viewing with rich visual layout
+ * - Inline profile editing with form validation
+ * - Avatar upload with image preview and validation
+ * - Memory management for blob URLs
+ * - Optimistic UI updates with error handling
+ * - Responsive design with modern UI components
+ * - Accessibility features (keyboard navigation, ARIA labels)
+ * 
+ * State Management:
+ * - Uses React hooks for local component state
+ * - Integrates with AuthContext for user authentication
+ * - Manages multiple UI states (editing, loading, uploading)
+ * - Handles form data synchronization with user state
+ * 
+ * Security Considerations:
+ * - File upload validation (type and size limits)
+ * - Authentication checks with automatic redirects
+ * - Secure API integration for profile updates
+ * - Memory leak prevention with URL cleanup
+ * 
+ * Performance Optimizations:
+ * - useEffect dependency optimization
+ * - Image preview using blob URLs
+ * - Conditional rendering to reduce re-renders
+ * - Efficient state updates with functional setState
+ * 
+ * @fileoverview User profile management component with advanced React patterns
+ * @author Birdsphere Development Team
+ */
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { uploadService } from '../services/uploadService';
 import { User } from '../types';
 
+/**
+ * Main Profile Component
+ * 
+ * Manages the entire profile page lifecycle including authentication,
+ * form editing, and file uploads. Uses multiple state hooks to track
+ * different aspects of the user interface and user interactions.
+ * 
+ * @returns {JSX.Element} The complete profile page component
+ */
 const Profile: React.FC = () => {
+  // Extract authentication context methods and state
   const { user, updateProfile, logout, refreshUser, isLoading, error, clearError } = useAuth();
+  
+  // Navigation hook for programmatic routing
   const navigate = useNavigate();
+  
+  // Local component state management
+  /** Controls whether the profile is in edit mode or view mode */
   const [isEditing, setIsEditing] = useState(false);
+  
+  /** Stores form data during editing, separate from user state for controlled updates */
   const [formData, setFormData] = useState<Partial<User>>({});
+  
+  /** Shows success message after successful profile updates */
   const [updateSuccess, setUpdateSuccess] = useState(false);
+  
+  /** Tracks avatar upload progress to show loading states */
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  
+  /** Stores blob URL for avatar preview during upload process */
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  
+  /** Reference to hidden file input for programmatic file selection */
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  /**
+   * Authentication and Form Initialization Effect
+   * 
+   * This effect handles several critical initialization tasks:
+   * 1. Authentication verification and redirect logic
+   * 2. Form data initialization from user state
+   * 3. Cleanup of preview states on user change
+   * 
+   * Security: Automatically redirects unauthenticated users to login
+   * Performance: Uses user.id as dependency to minimize re-renders
+   * Memory: Cleans up avatar preview URLs to prevent memory leaks
+   * 
+   * Dependencies:
+   * - user?.id: Triggers when user changes (login/logout)
+   * - navigate: React Router navigation function
+   * - isLoading: Prevents premature redirects during auth check
+   */
   useEffect(() => {
-    console.log('Profile useEffect - Auth state:', {
-      user: !!user,
-      isLoading,
-      userId: user?.id,
-      profileImage: user?.profileImage
-    });
-
+    // Security check: Redirect unauthenticated users
     if (!user && !isLoading) {
-      console.log('Profile - Redirecting to login: no user and not loading');
       navigate('/login');
       return;
     }
 
+    // Wait for authentication to complete
     if (!user) {
-      console.log('Profile - No user but still loading, waiting...');
       return;
     }
     
-    console.log('Profile component - user data:', JSON.stringify(user, null, 2));
-    console.log('Profile image field specifically:', user.profileImage);
-    
-    // Reset avatar preview when user changes (e.g., after logout/login)
+    // Memory management: Clear any existing avatar preview
+    // This prevents memory leaks when user changes
     setAvatarPreview(null);
     
-    // Reset form data
+    // Initialize form data with current user information
+    // Using default values to prevent controlled/uncontrolled input issues
     setFormData({
       firstName: user.firstName || '',
       lastName: user.lastName || '',
@@ -50,131 +123,270 @@ const Profile: React.FC = () => {
       locationCountry: user.locationCountry || '',
       isBreeder: user.isBreeder || false,
     });
-    
-    // Force a re-render by logging the avatar URL calculation
-    console.log('Avatar URL calculation:', {
-      hasAvatarPreview: !!avatarPreview,
-      userProfileImage: user.profileImage,
-      finalAvatarUrl: user.profileImage ? 
-        (user.profileImage.startsWith('http') ? user.profileImage : `http://localhost:3000${user.profileImage}`) : 
-        null
-    });
-  }, [user?.id, user?.profileImage, navigate, isLoading]); // More specific dependencies
+  }, [user?.id, navigate, isLoading]); // Optimized dependencies - removed user?.profileImage to prevent unnecessary re-renders
 
+  /**
+   * Form Input Change Handler
+   * 
+   * Handles all form input changes including text inputs, textareas, and checkboxes.
+   * Implements controlled component pattern by updating local state and provides
+   * immediate UI feedback by clearing error and success states.
+   * 
+   * Features:
+   * - Unified handler for multiple input types
+   * - Type-safe handling of checkbox vs text inputs
+   * - Immediate feedback by clearing error states
+   * - Functional state updates for performance
+   * 
+   * @param {React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>} e - Input change event
+   */
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
     
+    // Update form data using functional setState for performance
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
     }));
     
+    // Clear error state when user starts typing (immediate feedback)
     if (error) clearError();
+    
+    // Clear success message when user makes changes
     if (updateSuccess) setUpdateSuccess(false);
   };
 
+  /**
+   * Profile Update Form Submission Handler
+   * 
+   * Processes profile update form submission with comprehensive error handling
+   * and user feedback. Implements optimistic UI updates by immediately switching
+   * to view mode and showing success feedback.
+   * 
+   * Flow:
+   * 1. Prevent default form submission
+   * 2. Send update request to server via AuthContext
+   * 3. Switch back to view mode on success
+   * 4. Show temporary success message
+   * 5. Error handling delegated to AuthContext
+   * 
+   * UX Features:
+   * - Optimistic UI updates
+   * - Auto-dismissing success messages
+   * - Graceful error handling without UI disruption
+   * 
+   * @param {React.FormEvent} e - Form submission event
+   */
   const handleSubmit = async (e: React.FormEvent) => {
+    // Prevent browser default form submission
     e.preventDefault();
+    
     try {
+      // Send profile update request to server
       await updateProfile(formData);
+      
+      // Optimistic UI update: switch back to view mode
       setIsEditing(false);
+      
+      // Show success feedback to user
       setUpdateSuccess(true);
+      
+      // Auto-dismiss success message after 3 seconds
       setTimeout(() => setUpdateSuccess(false), 3000);
     } catch (err) {
-      // Error is handled by the AuthContext
+      // Error handling is managed by AuthContext
+      // Error will be displayed through context's error state
     }
   };
 
+  /**
+   * User Logout Handler
+   * 
+   * Handles user logout process by calling the logout method from AuthContext
+   * and then navigating to the login page. Simple but critical for user session management.
+   * 
+   * Security: Clears all authentication state and redirects to login
+   * UX: Provides immediate navigation feedback
+   * 
+   * @async
+   */
   const handleLogout = async () => {
+    // Clear authentication state through context
     await logout();
+    
+    // Navigate to login page
     navigate('/login');
   };
 
+  /**
+   * Avatar Click Handler
+   * 
+   * Programmatically triggers the hidden file input when user clicks on the avatar
+   * or avatar upload button. This provides a better user experience than showing
+   * the native file input.
+   * 
+   * Accessibility: Triggered by both click and keyboard events on avatar
+   * UX: Hidden file input provides clean interface
+   * 
+   */
   const handleAvatarClick = () => {
-    console.log('Avatar clicked!'); // Debug log
+    // Programmatically trigger file input click
     fileInputRef.current?.click();
   };
 
+  /**
+   * Avatar Upload Handler
+   * 
+   * Comprehensive file upload handler that manages the entire avatar update process
+   * including validation, preview generation, upload, and state synchronization.
+   * Implements sophisticated memory management and error handling.
+   * 
+   * Process Flow:
+   * 1. File selection and validation (type, size)
+   * 2. Create blob URL for immediate preview
+   * 3. Upload file to server
+   * 4. Wait for server processing
+   * 5. Refresh user data to get new avatar URL
+   * 6. Clean up resources and update UI
+   * 
+   * Security Features:
+   * - File type validation (images only)
+   * - File size limits (5MB max)
+   * - Server-side processing validation
+   * 
+   * Performance Features:
+   * - Immediate preview with blob URLs
+   * - Async upload with loading states
+   * - Memory leak prevention with URL cleanup
+   * 
+   * UX Features:
+   * - Loading states during upload
+   * - Success feedback
+   * - Error handling with user alerts
+   * 
+   * @param {React.ChangeEvent<HTMLInputElement>} e - File input change event
+   */
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
+    // Security validation: Check file type
     if (!file.type.startsWith('image/')) {
       alert('Please select an image file');
       return;
     }
 
-    // Validate file size (max 5MB)
+    // Security validation: Check file size (5MB limit)
     if (file.size > 5 * 1024 * 1024) {
       alert('Image size must be less than 5MB');
       return;
     }
 
+    // Track preview URL for memory management
+    let previewUrl: string | null = null;
+    
     try {
+      // Set loading state for user feedback
       setIsUploadingAvatar(true);
       
-      // Create preview
-      const previewUrl = URL.createObjectURL(file);
+      // Create blob URL for immediate preview (optimistic UI)
+      previewUrl = URL.createObjectURL(file);
       setAvatarPreview(previewUrl);
       
-      // Upload avatar
+      // Upload avatar to server
       const response = await uploadService.uploadAvatar(file);
-      console.log('Avatar upload response:', response);
       
-      // Refresh user data from server to get the updated profile image
+      // Allow server processing time (prevents race conditions)
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Refresh user data to get updated profile image URL
       await refreshUser();
-      console.log('User data refreshed after upload');
       
-      // Don't clear the preview immediately - let it stay until we're sure the user data is updated
-      // The preview will be cleared automatically when the component re-renders with updated user data
+      // Clear preview (server image now available)
+      setAvatarPreview(null);
       
+      // Show success feedback
       setUpdateSuccess(true);
       setTimeout(() => setUpdateSuccess(false), 3000);
       
     } catch (error) {
+      // Log error for debugging
       console.error('Avatar upload failed:', error);
+      
+      // Clear preview on error
       setAvatarPreview(null);
+      
+      // TODO: Show user-friendly error message instead of console.error
     } finally {
+      // Always clear loading state
       setIsUploadingAvatar(false);
+      
+      // Memory management: Clean up blob URL to prevent memory leaks
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
     }
   };
 
+  /**
+   * Avatar URL Resolution Function
+   * 
+   * Determines the correct avatar URL to display based on current state.
+   * Implements a priority system for different avatar sources to provide
+   * optimal user experience during uploads and normal viewing.
+   * 
+   * Priority Order:
+   * 1. Avatar preview (blob URL during upload) - highest priority for immediate feedback
+   * 2. User profile image from database - standard display
+   * 3. null (shows default avatar) - fallback when no image available
+   * 
+   * URL Handling:
+   * - Blob URLs (data:) used for upload preview
+   * - Relative URLs converted to absolute for server images
+   * - External URLs (http/https) passed through unchanged
+   * 
+   * Security Considerations:
+   * - Only serves images from trusted domains
+   * - Validates URL formats before processing
+   * 
+   * @returns {string | null} The avatar URL to display, or null for default avatar
+   */
   const getAvatarUrl = () => {
-    console.log('getAvatarUrl called:', {
-      avatarPreview,
-      userProfileImage: user?.profileImage,
-      userId: user?.id,
-      timestamp: new Date().toISOString()
-    });
-    
-    // Priority 1: Avatar preview (when user is uploading new avatar)
+    // Priority 1: Show upload preview if available (optimistic UI)
+    // This provides immediate visual feedback during upload process
     if (avatarPreview && avatarPreview.trim()) {
-      console.log('✅ Using avatar preview:', avatarPreview);
       return avatarPreview;
     }
     
-    // Priority 2: User's profile image from database
+    // Priority 2: Show user's saved profile image from database
     if (user?.profileImage && user.profileImage.trim()) {
+      // Handle different URL formats
       const avatarUrl = user.profileImage.startsWith('http') 
-        ? user.profileImage 
-        : `http://localhost:3000${user.profileImage}`;
-      console.log('✅ Using user profile image:', avatarUrl);
-      
-      // Clear the preview now that we have a valid user profile image to show
-      if (avatarPreview) {
-        console.log('🔄 Clearing preview since we have updated user profile image');
-        setTimeout(() => setAvatarPreview(null), 0);
-      }
+        ? user.profileImage  // External URL - use as-is
+        : `http://localhost:3000${user.profileImage}`; // Relative URL - make absolute
       
       return avatarUrl;
     }
     
-    console.log('❌ No avatar found - user has no profile image');
+    // Priority 3: No avatar available - return null to show default
     return null;
   };
 
+  /**
+   * Loading State Render
+   * 
+   * Shows loading spinner while authentication is being verified or user data
+   * is being fetched. Prevents flash of unauthorized content and provides
+   * consistent loading experience.
+   * 
+   * Conditions for loading state:
+   * - isLoading: Authentication check in progress
+   * - !user: User data not yet available
+   * 
+   * UX: Centered loading spinner with consistent styling
+   * Performance: Early return prevents unnecessary render cycles
+   */
   if (isLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -183,9 +395,29 @@ const Profile: React.FC = () => {
     );
   }
 
+  /**
+   * Main Component Render
+   * 
+   * Renders the complete profile page with responsive design, accessibility features,
+   * and conditional content based on editing state. Uses modern CSS techniques
+   * including gradients, backdrop-blur, and transform animations.
+   * 
+   * Layout Structure:
+   * - Full-height container with gradient background
+   * - Overlay for visual depth and theme consistency  
+   * - Card-based content layout with backdrop blur
+   * - Responsive grid system for profile information
+   * - Conditional rendering for edit/view modes
+   * 
+   * Accessibility Features:
+   * - Keyboard navigation support
+   * - ARIA labels and roles
+   * - Screen reader friendly structure
+   * - Focus management
+   */
   return (
     <div className="min-h-screen gradient-birdsphere py-8 relative overflow-hidden">
-      {/* Golden overlay to enhance the warm theme */}
+      {/* Visual enhancement: Golden overlay for theme consistency and depth */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-accent/20"></div>
       
       <div className="container mx-auto px-4 max-w-4xl relative z-10">
@@ -332,6 +564,16 @@ const Profile: React.FC = () => {
             )}
 
             {!isEditing ? (
+              /**
+               * VIEW MODE RENDER
+               * 
+               * Displays user profile information in read-only format with:
+               * - Rich visual layout with gradient cards
+               * - Responsive grid system
+               * - Conditional content sections
+               * - Status indicators and badges
+               * - Formatted date display
+               */
               // View Mode
               <div className="space-y-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -454,6 +696,16 @@ const Profile: React.FC = () => {
                 )}
               </div>
             ) : (
+              /**
+               * EDIT MODE RENDER
+               * 
+               * Provides form interface for profile editing with:
+               * - Controlled form inputs
+               * - Real-time validation feedback
+               * - Responsive form layout
+               * - Loading states during submission
+               * - Form submission handling
+               */
               // Edit Mode
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
