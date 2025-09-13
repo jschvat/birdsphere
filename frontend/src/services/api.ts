@@ -1,4 +1,37 @@
-/**\n * Axios HTTP Client Configuration\n * \n * Centralized HTTP client setup with comprehensive security, error handling,\n * and authentication integration. This module configures Axios with proper\n * CORS settings, cookie-based authentication, request/response interceptors,\n * and automatic error handling.\n * \n * Key Features:\n * - Cookie-based authentication (httpOnly cookies)\n * - Automatic credential inclusion for CORS requests\n * - Request and response interceptors for centralized handling\n * - Automatic authentication error handling and redirects\n * - Configurable timeouts and base URL\n * - Environment-based configuration\n * \n * Security Features:\n * - Secure cookie handling with withCredentials\n * - Automatic 401 redirect to prevent unauthorized access\n * - No manual token management (handled by cookies)\n * - CORS-compliant credential handling\n * \n * Architecture Benefits:\n * - Single source of truth for HTTP configuration\n * - Consistent error handling across the application\n * - Separation of concerns (HTTP logic vs business logic)\n * - Easy to mock for testing\n * - Environment-specific configuration support\n * \n * @fileoverview Centralized Axios HTTP client with security and authentication features\n * @author Birdsphere Development Team\n */\n\nimport axios from 'axios';
+/**
+ * Axios HTTP Client Configuration
+ * 
+ * Centralized HTTP client setup with comprehensive security, error handling,
+ * and authentication integration. This module configures Axios with proper
+ * CORS settings, cookie-based authentication, request/response interceptors,
+ * and automatic error handling.
+ * 
+ * Key Features:
+ * - Cookie-based authentication (httpOnly cookies)
+ * - Automatic credential inclusion for CORS requests
+ * - Request and response interceptors for centralized handling
+ * - Automatic authentication error handling and redirects
+ * - Configurable timeouts and base URL
+ * - Environment-based configuration
+ * 
+ * Security Features:
+ * - Secure cookie handling with withCredentials
+ * - Automatic 401 redirect to prevent unauthorized access
+ * - No manual token management (handled by cookies)
+ * - CORS-compliant credential handling
+ * 
+ * Architecture Benefits:
+ * - Single source of truth for HTTP configuration
+ * - Consistent error handling across the application
+ * - Separation of concerns (HTTP logic vs business logic)
+ * - Easy to mock for testing
+ * - Environment-specific configuration support
+ * 
+ * @fileoverview Centralized Axios HTTP client with security and authentication features
+ * @author Birdsphere Development Team
+ */
+
+import axios from 'axios';
 
 /**
  * API Base URL Configuration
@@ -8,75 +41,56 @@
  * 
  * Environment Configuration:
  * - REACT_APP_API_URL: Custom API URL from environment variables
- * - Fallback: Local development server (http://localhost:3000/api)
+ * - Default: http://localhost:3000 for development
  * 
- * Usage Examples:
- * - Development: http://localhost:3000/api
- * - Staging: https://api-staging.birdsphere.com/api
- * - Production: https://api.birdsphere.com/api
+ * Production deployments should set REACT_APP_API_URL to the appropriate
+ * backend server URL (e.g., https://api.birdsphere.com)
  */
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000/api';
 
 /**
  * Axios Instance Configuration
  * 
- * Creates a configured Axios instance with security and performance optimizations.
- * This instance is used throughout the application for all HTTP requests.
+ * Creates a pre-configured Axios instance with security-focused defaults
+ * optimized for browser-based applications using httpOnly cookie authentication.
  * 
- * Configuration Details:
- * - baseURL: Set from environment or defaults to local development
- * - timeout: 10-second request timeout to prevent hanging requests
- * - headers: JSON content type for consistent API communication
- * - withCredentials: Enables cookie sending for CORS authentication
- * 
- * Security Considerations:
- * - withCredentials: true enables httpOnly cookie authentication
- * - Allows secure cross-origin requests with credentials
- * - No authorization headers needed (handled by cookies)
- * 
- * Performance Features:
- * - Request timeout prevents hanging connections
- * - Consistent headers reduce negotiation overhead
+ * Configuration Features:
+ * - Automatic credential inclusion for authentication
+ * - Timeout protection against hanging requests
+ * - Content type defaults for JSON communication
  * - Connection pooling through Axios defaults
  */
 const api = axios.create({
   /** API base URL from environment or development default */
   baseURL: API_BASE_URL,
   
-  /** Request timeout in milliseconds (10 seconds) */
-  timeout: 10000,
+  /** Request timeout in milliseconds (30 seconds) */
+  timeout: 30000,
+  
+  /** 
+   * Include credentials (cookies) with all requests
+   * Essential for httpOnly cookie authentication to work with CORS
+   */
+  withCredentials: true,
   
   /** Default headers for all requests */
   headers: {
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
   },
-  
-  /** Enable cookie-based authentication for CORS requests */
-  withCredentials: true,
 });
 
 /**
- * Request Interceptor Configuration
+ * Request Interceptor
  * 
- * Intercepts all outgoing requests to apply consistent configuration
- * and handle authentication. In this httpOnly cookie-based system,
- * the interceptor primarily serves as a future extension point.
+ * Processes outgoing requests before they are sent to the server.
+ * In this authentication model, we don't need to manually add Authorization
+ * headers because httpOnly cookies are automatically included by the browser.
  * 
- * Current Functionality:
- * - Pass-through configuration (no modifications needed)
- * - Cookie authentication handled automatically by browser
- * - Error propagation for request failures
- * 
- * Security Benefits:
- * - No manual token handling prevents XSS token theft
- * - Cookies are automatically included by browser
- * - Server reads httpOnly cookies for authentication
- * 
- * Future Extensions:
- * - Request logging and monitoring
- * - Dynamic header injection
- * - Request transformation
- * - Retry logic implementation
+ * Security Notes:
+ * - No Authorization header manipulation needed
+ * - httpOnly cookies are automatically sent with requests
+ * - Server will validate the authToken cookie
  */
 api.interceptors.request.use(
   (config) => {
@@ -92,76 +106,71 @@ api.interceptors.request.use(
 );
 
 /**
- * Response Interceptor Configuration
+ * Response Interceptor
  * 
- * Handles all incoming responses and provides centralized error handling,
- * particularly for authentication failures. This interceptor is crucial
- * for maintaining security and user experience.
+ * Handles incoming responses and implements global error handling strategies.
+ * Provides centralized authentication error handling and automatic redirects
+ * for security violations.
  * 
- * Success Handling:
- * - Pass-through successful responses unchanged
- * - Preserve original response structure
+ * Error Handling Strategy:
+ * - 401 Unauthorized: Redirect to login (authentication failure)
+ * - 403 Forbidden: Redirect to login (insufficient permissions)
+ * - Network errors: Pass through for component-level handling
+ * - Server errors: Pass through with structured error information
  * 
- * Error Handling:
- * - 401 Unauthorized: Automatic redirect to login page
- * - Infinite redirect prevention with path checking
- * - All other errors propagated to calling code
- * 
- * Security Features:
- * - Automatic session expiration handling
- * - Prevents access to protected resources when unauthorized
- * - Clean separation between authentication and authorization errors
- * 
- * UX Benefits:
- * - Seamless redirect on session expiration
- * - No user confusion from 401 errors
- * - Consistent authentication flow
- * 
- * Error Prevention:
- * - Checks current path to prevent redirect loops
- * - Maintains browser history and user context
+ * Authentication Flow:
+ * - Server validates httpOnly cookie on each request
+ * - If invalid/expired, server returns 401
+ * - Client automatically redirects to login
+ * - User must re-authenticate to continue
  */
 api.interceptors.response.use(
   /**
    * Success Response Handler
-   * @param {AxiosResponse} response - Successful API response
+   * 
+   * Passes successful responses through without modification.
+   * All successful responses (2xx status codes) are returned as-is.
+   * 
+   * @param {AxiosResponse} response - Successful HTTP response
    * @returns {AxiosResponse} Unmodified response
    */
   (response) => response,
   
   /**
    * Error Response Handler
-   * @param {AxiosError} error - API error response
+   * @param {AxiosError} error - HTTP error response
    * @returns {Promise<never>} Rejected promise with error
    */
   (error) => {
     // Handle authentication failures (401 Unauthorized)
     if (error.response?.status === 401) {
       // Security: Redirect to login on authentication failure
-      // UX: Prevent infinite redirect loops by checking current path
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
-      }
+      // This ensures users can't access protected resources without valid auth
+      window.location.href = '/login';
+      return Promise.reject(new Error('Authentication required'));
     }
     
-    // Propagate all errors to calling code for specific handling
+    // Handle authorization failures (403 Forbidden)
+    if (error.response?.status === 403) {
+      // User is authenticated but lacks necessary permissions
+      // Redirect to login to allow different user or upgrade permissions
+      window.location.href = '/login';
+      return Promise.reject(new Error('Insufficient permissions'));
+    }
+    
+    // For all other errors, pass through to component error handling
+    // This allows components to handle specific business logic errors
     return Promise.reject(error);
   }
 );
 
 /**
- * Export Configured Axios Instance
+ * Export configured Axios instance
  * 
- * The default export provides a fully configured Axios instance ready
- * for use throughout the application. This instance includes:
+ * This instance should be used throughout the application for all API calls.
+ * It provides consistent behavior, security features, and error handling.
  * 
- * - Environment-based base URL configuration
- * - Security-focused cookie authentication
- * - Request/response interceptors for error handling
- * - Proper timeout and header configuration
- * - CORS credential support
- * 
- * Usage:
+ * Usage Examples:
  * ```typescript
  * import api from './api';
  * 
@@ -171,9 +180,25 @@ api.interceptors.response.use(
  * // POST request with data
  * const newUser = await api.post('/users', userData);
  * 
- * // Authentication is handled automatically via cookies
+ * // PUT request for updates
+ * const updatedUser = await api.put('/users/123', updateData);
+ * 
+ * // DELETE request
+ * await api.delete('/users/123');
  * ```
  * 
- * @exports {AxiosInstance} Configured Axios instance for API communication
+ * Error Handling:
+ * ```typescript
+ * try {
+ *   const data = await api.get('/protected-resource');
+ * } catch (error) {
+ *   // Handle specific errors
+ *   if (error.response?.status === 404) {
+ *     // Resource not found
+ *   } else if (error.response?.status >= 500) {
+ *     // Server error
+ *   }
+ * }
+ * ```
  */
 export default api;

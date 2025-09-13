@@ -108,9 +108,11 @@ app.use(cors({
         'http://localhost:3000', 
         'http://localhost:3001', 
         'http://localhost:3002',
+        'http://localhost:3003',
         'http://127.0.0.1:3000',
         'http://127.0.0.1:3001', 
-        'http://127.0.0.1:3002'
+        'http://127.0.0.1:3002',
+        'http://127.0.0.1:3003'
       ],
   credentials: true, // Allow cookies and auth headers
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
@@ -175,17 +177,14 @@ app.use('/uploads', (req, res, next) => {
       ];
   
   const origin = req.headers.origin;
-  console.log('Static file request - Origin:', origin, 'File:', req.path);
   
   if (allowedOrigins.includes(origin)) {
     res.header('Access-Control-Allow-Origin', origin);
     res.header('Access-Control-Allow-Credentials', 'true');
-    console.log('✅ CORS allowed for origin:', origin);
   } else {
     // Allow any origin for image files in development - but set specific headers
     res.header('Access-Control-Allow-Origin', 'http://localhost:3002');
     res.header('Access-Control-Allow-Credentials', 'false');
-    console.log('🔧 Using fallback CORS for origin:', origin);
   }
   
   res.header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
@@ -197,7 +196,6 @@ app.use('/uploads', (req, res, next) => {
   
   // Handle preflight OPTIONS requests
   if (req.method === 'OPTIONS') {
-    console.log('📋 Handling OPTIONS preflight for:', req.path);
     return res.status(200).end();
   }
   
