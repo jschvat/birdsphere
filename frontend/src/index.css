@@ -2,74 +2,158 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Set the default theme to birdsphere */
+/* BirdSphere Elegant Theme Variables - Matching login2.png */
 :root {
-  color-scheme: light;
+  color-scheme: dark;
+  /* Rich color palette inspired by the elegant forest green bird illustration */
+  --primary: #F39C12;        /* Golden yellow from cockatiel crest */
+  --primary-content: #1A5A3E; /* Dark forest green text on primary */
+  --secondary: #4CAF50;      /* Fresh green from lovebird */
+  --secondary-content: #FFFFFF; /* White text on secondary */
+  --accent: #FF8A65;         /* Warm coral orange from bird features */
+  --accent-content: #FFFFFF;   /* White text on accent */
+  --neutral: #1A5A3E;        /* Deep forest green from background */
+  --neutral-content: #FFFFFF; /* White text on neutral */
+  --base-100: #2D5A42;       /* Rich forest green background */
+  --base-200: #1A5A3E;       /* Darker green for cards */
+  --base-300: #0F3A28;       /* Deep green for borders */
+  --base-content: #E8F5E8;   /* Light green-tinted text */
+  --info: #64B5F6;           /* Soft blue */
+  --info-content: #FFFFFF;
+  --success: #4CAF50;        /* Matching secondary green */
+  --success-content: #FFFFFF;
+  --warning: #FFB74D;        /* Soft golden warning */
+  --warning-content: #1A5A3E;
+  --error: #EF5350;          /* Soft red */
+  --error-content: #FFFFFF;
 }
 
 html {
-  --tw-bg-opacity: 1;
-  background-color: hsl(var(--b1) / var(--tw-bg-opacity));
-  color: hsl(var(--bc) / var(--tw-text-opacity));
+  background: linear-gradient(145deg, #1A5A3E 0%, #2D5A42 30%, #0F3A28 100%);
+  background-attachment: fixed;
+  color: var(--base-content);
+  min-height: 100vh;
+}
+
+body {
+  background: transparent;
 }
 
 [data-theme="birdsphere"] {
   color-scheme: light;
-  --p: 44 85 66; /* #F4B942 primary */
-  --pc: 30 17 5; /* #8B4513 primary content */
-  --s: 26 86 56; /* #F28B2C secondary */
+  --p: 214 100 59; /* #3B82F6 blue primary */
+  --pc: 0 0 100; /* #FFFFFF primary content */
+  --s: 215 25 27; /* #64748B slate secondary */
   --sc: 0 0 100; /* #FFFFFF secondary content */
-  --a: 39 83 50; /* #E6A532 accent */
-  --ac: 30 17 5; /* #8B4513 accent content */
-  --n: 30 17 5; /* #8B4513 neutral */
+  --a: 43 96 56; /* #F59E0B amber accent */
+  --ac: 0 0 100; /* #FFFFFF accent content */
+  --n: 220 13 18; /* #374151 neutral */
   --nc: 0 0 100; /* #FFFFFF neutral content */
-  --b1: 52 7 91; /* #FFF8E7 base-100 */
-  --b2: 44 85 66; /* #F4B942 base-200 */
-  --b3: 39 83 50; /* #E6A532 base-300 */
-  --bc: 30 17 5; /* #8B4513 base content */
+  --b1: 0 0 100; /* #FFFFFF base-100 */
+  --b2: 210 40 98; /* #F8FAFC base-200 */
+  --b3: 214 32 91; /* #E2E8F0 base-300 */
+  --bc: 220 39 11; /* #1F2937 base content */
 }
 
-/* Custom styles to match login.png aesthetic */
+/* Custom styles to match classic aesthetic */
 @layer components {
+  /* Base button styles to replace DaisyUI btn class */
+  .btn {
+    @apply inline-flex items-center justify-center;
+    @apply px-2 py-1 text-xs font-medium;
+    @apply border border-transparent;
+    border-radius: 1px;
+    @apply focus:outline-none focus:ring-1;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply transition-all duration-75;
+    cursor: pointer;
+    text-decoration: none;
+    line-height: 1.2;
+  }
+
   .btn-birdsphere {
-    background-color: #F4B942;
-    color: #8B4513;
+    @apply btn;
+    background: linear-gradient(135deg, #F39C12 0%, #FFB74D 100%);
+    color: #1A5A3E;
+    @apply focus:ring-yellow-400;
     border: none;
-    font-weight: 600;
-    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 2px;
+    box-shadow: 0 1px 2px 0 rgb(243 156 18 / 0.2);
+    font-size: 12px;
   }
   
   .btn-birdsphere:hover {
-    background-color: #E6A532;
+    background: linear-gradient(135deg, #FFB74D 0%, #FFC107 100%);
+    box-shadow: 0 2px 3px 0 rgb(243 156 18 / 0.25);
+  }
+  
+  .btn-birdsphere:active {
+    box-shadow: 0 1px 1px 0 rgb(243 156 18 / 0.2);
   }
   
   .card-birdsphere {
-    background-color: #FFF8E7;
-    box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
-    border: 1px solid #E6A532;
-    backdrop-filter: blur(8px);
+    background: rgba(26, 90, 62, 0.9);
+    border: 1px solid rgba(76, 175, 80, 0.3);
+    border-radius: 3px;
+    backdrop-filter: blur(6px);
+    position: relative;
+    box-shadow: 0 2px 6px 0 rgba(15, 58, 40, 0.3);
+  }
+  
+  .card-birdsphere:hover {
+    background: rgba(26, 90, 62, 0.95);
+    border: 1px solid rgba(76, 175, 80, 0.4);
+    box-shadow: 0 3px 8px 0 rgba(15, 58, 40, 0.4);
+    transition: all 0.15s ease-in-out;
   }
   
   .input-birdsphere {
-    background-color: white;
-    border: 1px solid #E6A532;
-    color: #8B4513;
+    background: rgba(45, 90, 66, 0.8);
+    border: 1px solid rgba(76, 175, 80, 0.4);
+    color: #E8F5E8;
+    border-radius: 2px;
+    backdrop-filter: blur(4px);
+    padding: 6px 8px;
+    font-size: 12px;
+    transition: all 0.1s ease;
   }
   
   .input-birdsphere:focus {
-    border-color: #F4B942;
-    outline: 2px solid #F4B942;
-    outline-offset: 2px;
+    background: rgba(45, 90, 66, 0.9);
+    border-color: #F39C12;
+    outline: none;
+    box-shadow: 0 0 0 1px rgba(243, 156, 18, 0.2);
+  }
+  
+  .input-birdsphere::placeholder {
+    color: rgba(232, 245, 232, 0.5);
+    font-size: 11px;
   }
   
   .gradient-birdsphere {
-    background: linear-gradient(135deg, #FFF8E7 0%, #F4B942 50%, #E6A532 100%);
+    background: linear-gradient(135deg, #FF6B35 0%, #F7931E 100%);
   }
   
   .text-gradient {
-    background: linear-gradient(135deg, #F4B942, #E6A532);
+    background: linear-gradient(135deg, #FF6B35 0%, #F7931E 50%, #F4D03F 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+  }
+  
+  /* Additional classic styles */
+  .classic-shadow {
+    box-shadow: 
+      0 1px 3px 0 rgb(0 0 0 / 0.1),
+      0 1px 2px 0 rgb(0 0 0 / 0.06);
+  }
+  
+  .classic-hover:hover {
+    transform: translateY(-1px);
+    box-shadow: 
+      0 4px 6px -1px rgb(0 0 0 / 0.1),
+      0 2px 4px -1px rgb(0 0 0 / 0.06);
   }
 }

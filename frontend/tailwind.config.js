@@ -15,25 +15,25 @@ module.exports = {
     themes: [
       {
         "birdsphere": {
-          "primary": "#F4B942",        // Bright golden yellow (main brand color)
-          "primary-content": "#8B4513", // Rich brown for text on primary
-          "secondary": "#F28B2C",      // Warm orange accent
+          "primary": "#F39C12",           // Golden yellow from cockatiel crest
+          "primary-content": "#1A5A3E",   // Dark forest green text on primary
+          "secondary": "#4CAF50",         // Fresh green from lovebird
           "secondary-content": "#FFFFFF", // White text on secondary
-          "accent": "#E6A532",         // Deep amber
-          "accent-content": "#8B4513",   // Brown text on accent
-          "neutral": "#8B4513",        // Rich brown for main text
-          "neutral-content": "#FFFFFF", // White text on neutral
-          "base-100": "#FFF8E7",       // Light cream background
-          "base-200": "#F4B942",       // Golden background for cards
-          "base-300": "#E6A532",       // Deeper golden for borders
-          "base-content": "#8B4513",   // Brown text on base
-          "info": "#3ABFF8",           // Keep default info blue
+          "accent": "#FF8A65",            // Warm coral orange from bird features
+          "accent-content": "#FFFFFF",    // White text on accent
+          "neutral": "#1A5A3E",           // Deep forest green from background
+          "neutral-content": "#FFFFFF",   // White text on neutral
+          "base-100": "#2D5A42",          // Rich forest green background
+          "base-200": "#1A5A3E",          // Darker green for cards
+          "base-300": "#0F3A28",          // Deep green for borders
+          "base-content": "#E8F5E8",      // Light green-tinted text
+          "info": "#64B5F6",              // Soft blue
           "info-content": "#FFFFFF",
-          "success": "#36D399",        // Keep default success green
+          "success": "#4CAF50",           // Matching secondary green
           "success-content": "#FFFFFF",
-          "warning": "#FBBD23",        // Warm yellow for warnings
-          "warning-content": "#8B4513",
-          "error": "#F87272",          // Keep default error red
+          "warning": "#FFB74D",           // Soft golden warning
+          "warning-content": "#1A5A3E",
+          "error": "#EF5350",             // Soft red
           "error-content": "#FFFFFF",
         },
       },

@@ -54,14 +54,18 @@ import { User } from '../types';
  */
 const Profile: React.FC = () => {
   // Extract authentication context methods and state
-  const { user, updateProfile, logout, refreshUser, isLoading, error, clearError } = useAuth();
+  const { user, updateProfile, logout, refreshUser, isLoading, isInitialized, error, clearError } = useAuth();
   
   // Navigation hook for programmatic routing
   const navigate = useNavigate();
   
   // Local component state management
   /** Controls whether the profile is in edit mode or view mode */
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(() => {
+    // Restore edit mode from localStorage on component mount
+    const savedEditMode = localStorage.getItem('profile-edit-mode');
+    return savedEditMode === 'true';
+  });
   
   /** Stores form data during editing, separate from user state for controlled updates */
   const [formData, setFormData] = useState<Partial<User>>({});
@@ -96,8 +100,12 @@ const Profile: React.FC = () => {
    * - isLoading: Prevents premature redirects during auth check
    */
   useEffect(() => {
+    console.log('🏠 Profile useEffect - isInitialized:', isInitialized, 'user:', user ? 'exists' : 'null', 'isLoading:', isLoading);
+
     // Security check: Redirect unauthenticated users
-    if (!user && !isLoading) {
+    // Only redirect after auth context has fully initialized
+    if (isInitialized && !user) {
+      console.log('🚪 Redirecting to login - auth initialized but no user');
       navigate('/login');
       return;
     }
@@ -123,7 +131,17 @@ const Profile: React.FC = () => {
       locationCountry: user.locationCountry || '',
       isBreeder: user.isBreeder || false,
     });
-  }, [user?.id, navigate, isLoading]); // Optimized dependencies - removed user?.profileImage to prevent unnecessary re-renders
+  }, [user, navigate, isLoading, isInitialized]); // Include isInitialized to prevent race conditions
+
+  /**
+   * Edit Mode Persistence Effect
+   *
+   * Saves the edit mode state to localStorage whenever it changes
+   * so that the edit mode persists across page reloads.
+   */
+  useEffect(() => {
+    localStorage.setItem('profile-edit-mode', isEditing.toString());
+  }, [isEditing]);
 
   /**
    * Form Input Change Handler
@@ -181,17 +199,20 @@ const Profile: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     // Prevent browser default form submission
     e.preventDefault();
-    
+
     try {
       // Send profile update request to server
       await updateProfile(formData);
-      
+
       // Optimistic UI update: switch back to view mode
       setIsEditing(false);
-      
+
+      // Clear the localStorage edit mode when saving
+      localStorage.removeItem('profile-edit-mode');
+
       // Show success feedback to user
       setUpdateSuccess(true);
-      
+
       // Auto-dismiss success message after 3 seconds
       setTimeout(() => setUpdateSuccess(false), 3000);
     } catch (err) {
@@ -212,9 +233,12 @@ const Profile: React.FC = () => {
    * @async
    */
   const handleLogout = async () => {
+    // Clear the localStorage edit mode on logout
+    localStorage.removeItem('profile-edit-mode');
+
     // Clear authentication state through context
     await logout();
-    
+
     // Navigate to login page
     navigate('/login');
   };
@@ -295,7 +319,7 @@ const Profile: React.FC = () => {
       setAvatarPreview(previewUrl);
       
       // Upload avatar to server
-      const response = await uploadService.uploadAvatar(file);
+      await uploadService.uploadAvatar(file);
       
       // Allow server processing time (prevents race conditions)
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -416,18 +440,17 @@ const Profile: React.FC = () => {
    * - Focus management
    */
   return (
-    <div className="min-h-screen gradient-birdsphere py-8 relative overflow-hidden">
-      {/* Visual enhancement: Golden overlay for theme consistency and depth */}
+    <div className="min-h-screen gradient-birdsphere py-6 relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-accent/20"></div>
-      
+
       <div className="container mx-auto px-4 max-w-4xl relative z-10">
         <div className="card-birdsphere shadow-2xl border-0 backdrop-blur-sm">
-          <div className="card-body p-8">
-            <div className="flex flex-col md:flex-row justify-between items-start mb-8">
-              <div className="flex items-center mb-4 md:mb-0">
-                <div className="relative group mr-4">
-                  <div 
-                    className="w-20 h-20 rounded-full overflow-hidden shadow-xl cursor-pointer transition-all duration-300 group-hover:shadow-2xl group-hover:scale-105 relative z-10"
+          <div className="card-body p-6">
+            <div className="flex flex-col md:flex-row justify-between items-start mb-6">
+              <div className="flex items-center mb-3 md:mb-0">
+                <div className="relative mr-3">
+                  <div
+                    className="w-16 h-16 rounded-full overflow-hidden shadow-md cursor-pointer hover:shadow-lg transition-shadow duration-200"
                     onClick={handleAvatarClick}
                     role="button"
                     tabIndex={0}
@@ -440,32 +463,25 @@ const Profile: React.FC = () => {
                     title="Click to change profile picture"
                   >
                     {getAvatarUrl() ? (
-                      <img 
-                        src={getAvatarUrl()!} 
-                        alt="Profile" 
+                      <img
+                        src={getAvatarUrl()!}
+                        alt="Profile"
                         className="w-full h-full object-cover pointer-events-none"
                       />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-primary via-secondary to-accent flex items-center justify-center">
-                        <svg className="w-10 h-10 text-white pointer-events-none" fill="currentColor" viewBox="0 0 20 20">
+                        <svg className="w-8 h-8 text-white pointer-events-none" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd"/>
                         </svg>
                       </div>
                     )}
-                    
-                    {/* Overlay */}
-                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 flex items-center justify-center rounded-full">
-                      <span className="text-white text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                        Change
-                      </span>
-                    </div>
                   </div>
-                  
-                  <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-1.5 shadow-lg group-hover:bg-primary/10 transition-colors duration-200 pointer-events-none">
+
+                  <div className="absolute -bottom-0.5 -right-0.5 bg-white rounded-full p-1 shadow-lg border border-primary/20">
                     {isUploadingAvatar ? (
-                      <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                      <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
                     ) : (
-                      <svg className="w-4 h-4 text-primary group-hover:text-secondary" fill="currentColor" viewBox="0 0 20 20">
+                      <svg className="w-3 h-3 text-primary" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
                       </svg>
                     )}
@@ -479,23 +495,18 @@ const Profile: React.FC = () => {
                   accept="image/*"
                   className="hidden"
                 />
-                
+
                 <div>
-                  <h1 className="text-3xl font-bold text-base-content mb-1 drop-shadow-lg">My Profile</h1>
-                  <p className="text-base-content/80 font-medium drop-shadow">
-                    Manage your account information and preferences
-                  </p>
-                  <p className="text-sm text-base-content/70 mt-1">
-                    <span className="cursor-pointer text-primary hover:text-secondary underline underline-offset-2 transition-colors duration-200" onClick={handleAvatarClick}>
-                      Click here or on your avatar to upload a new profile picture
-                    </span>
+                  <h1 className="text-2xl font-bold text-base-content mb-1 drop-shadow-lg">Profile</h1>
+                  <p className="text-base-content/80 font-medium drop-shadow text-sm">
+                    Manage your account information
                   </p>
                 </div>
               </div>
-              <div className="flex gap-3 flex-wrap">
+              <div className="flex gap-2 flex-wrap">
                 <button
                   onClick={handleAvatarClick}
-                  className={`btn-birdsphere rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5 hover:scale-105 active:scale-95 flex items-center space-x-2 ${isUploadingAvatar ? 'animate-pulse' : ''}`}
+                  className={`btn-birdsphere rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5 hover:scale-105 active:scale-95 flex items-center space-x-2 ${isUploadingAvatar ? 'animate-pulse' : ''}`}
                   disabled={isUploadingAvatar}
                 >
                   {isUploadingAvatar ? (
@@ -508,24 +519,31 @@ const Profile: React.FC = () => {
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd"/>
                       </svg>
-                      <span>Upload Avatar</span>
+                      <span>Upload</span>
                     </>
                   )}
                 </button>
                 <button
-                  onClick={() => setIsEditing(!isEditing)}
-                  className="btn bg-gradient-to-r from-secondary to-accent hover:from-accent hover:to-secondary border-0 text-primary-content font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5 hover:scale-105 active:scale-95"
+                  onClick={() => {
+                    const newEditState = !isEditing;
+                    setIsEditing(newEditState);
+                    // Clear localStorage when canceling edit mode
+                    if (!newEditState) {
+                      localStorage.removeItem('profile-edit-mode');
+                    }
+                  }}
+                  className="btn bg-gradient-to-r from-secondary to-accent hover:from-accent hover:to-secondary border-0 text-primary-content font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5 hover:scale-105 active:scale-95"
                 >
                   <div className="flex items-center space-x-2">
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
                     </svg>
-                    <span>{isEditing ? 'Cancel' : 'Edit Profile'}</span>
+                    <span>{isEditing ? 'Cancel' : 'Edit'}</span>
                   </div>
                 </button>
                 <button
                   onClick={handleLogout}
-                  className="btn bg-base-200/30 hover:bg-base-200/50 border border-base-300/50 text-base-content hover:text-base-content font-semibold rounded-xl transition-all duration-200 transform hover:-translate-y-0.5 backdrop-blur-sm"
+                  className="btn bg-base-200/30 hover:bg-base-200/50 border border-base-300/50 text-base-content hover:text-base-content font-semibold rounded-lg transition-all duration-200 transform hover:-translate-y-0.5 backdrop-blur-sm"
                 >
                   <div className="flex items-center space-x-2">
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -538,27 +556,23 @@ const Profile: React.FC = () => {
             </div>
 
             {error && (
-              <div className="mb-6 p-4 bg-error/20 backdrop-blur-sm border border-error/30 rounded-2xl">
-                <div className="flex items-center space-x-3">
-                  <div className="flex-shrink-0">
-                    <svg className="w-5 h-5 text-error" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd"/>
-                    </svg>
-                  </div>
-                  <span className="text-error font-medium">{error}</span>
+              <div className="mb-4 p-3 bg-error/20 backdrop-blur-sm border border-error/30 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <svg className="w-4 h-4 text-error" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd"/>
+                  </svg>
+                  <span className="text-error font-medium text-sm">{error}</span>
                 </div>
               </div>
             )}
 
             {updateSuccess && (
-              <div className="mb-6 p-4 bg-success/20 backdrop-blur-sm border border-success/30 rounded-2xl">
-                <div className="flex items-center space-x-3">
-                  <div className="flex-shrink-0">
-                    <svg className="w-5 h-5 text-success" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
-                    </svg>
-                  </div>
-                  <span className="text-success font-medium">Profile updated successfully!</span>
+              <div className="mb-4 p-3 bg-success/20 backdrop-blur-sm border border-success/30 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <svg className="w-4 h-4 text-success" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
+                  </svg>
+                  <span className="text-success font-medium text-sm">Profile updated successfully!</span>
                 </div>
               </div>
             )}
@@ -575,56 +589,56 @@ const Profile: React.FC = () => {
                * - Formatted date display
                */
               // View Mode
-              <div className="space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="bg-gradient-to-r from-primary/10 to-secondary/10 p-6 rounded-xl border border-primary/20 backdrop-blur-sm">
-                    <h3 className="text-xl font-bold text-base-content mb-6 flex items-center">
-                      <svg className="w-5 h-5 mr-2 text-primary" fill="currentColor" viewBox="0 0 20 20">
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-gradient-to-r from-primary/10 to-secondary/10 p-4 rounded-lg border border-primary/20 backdrop-blur-sm">
+                    <h3 className="text-lg font-bold text-base-content mb-4 flex items-center">
+                      <svg className="w-4 h-4 mr-2 text-primary" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd"/>
                       </svg>
                       Personal Information
                     </h3>
-                    <div className="space-y-4">
-                      <div className="bg-base-100/80 p-4 rounded-lg shadow-sm border border-primary/10">
-                        <label className="text-sm font-semibold text-base-content/70">Full Name</label>
-                        <p className="text-lg text-base-content font-medium">{user.firstName} {user.lastName}</p>
+                    <div className="space-y-3">
+                      <div className="bg-base-100/80 p-3 rounded-lg shadow-sm border border-primary/10">
+                        <label className="text-xs font-semibold text-base-content/70 uppercase tracking-wide">Full Name</label>
+                        <p className="text-sm text-base-content font-medium mt-1">{user.firstName} {user.lastName}</p>
                       </div>
-                      <div className="bg-base-100/80 p-4 rounded-lg shadow-sm border border-primary/10">
-                        <label className="text-sm font-semibold text-base-content/70">Username</label>
-                        <p className="text-lg text-base-content font-medium">@{user.username}</p>
+                      <div className="bg-base-100/80 p-3 rounded-lg shadow-sm border border-primary/10">
+                        <label className="text-xs font-semibold text-base-content/70 uppercase tracking-wide">Username</label>
+                        <p className="text-sm text-base-content font-medium mt-1">@{user.username}</p>
                       </div>
-                      <div className="bg-base-100/80 p-4 rounded-lg shadow-sm border border-primary/10">
-                        <label className="text-sm font-semibold text-base-content/70">Email</label>
-                        <p className="text-lg text-base-content font-medium">{user.email}</p>
+                      <div className="bg-base-100/80 p-3 rounded-lg shadow-sm border border-primary/10">
+                        <label className="text-xs font-semibold text-base-content/70 uppercase tracking-wide">Email</label>
+                        <p className="text-sm text-base-content font-medium mt-1">{user.email}</p>
                       </div>
-                      <div className="bg-base-100/80 p-4 rounded-lg shadow-sm border border-primary/10">
-                        <label className="text-sm font-semibold text-base-content/70">Phone</label>
-                        <p className="text-lg text-base-content font-medium">{user.phone || 'Not provided'}</p>
+                      <div className="bg-base-100/80 p-3 rounded-lg shadow-sm border border-primary/10">
+                        <label className="text-xs font-semibold text-base-content/70 uppercase tracking-wide">Phone</label>
+                        <p className="text-sm text-base-content font-medium mt-1">{user.phone || 'Not provided'}</p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-gradient-to-r from-secondary/10 to-accent/10 p-6 rounded-xl border border-secondary/20 backdrop-blur-sm">
-                    <h3 className="text-xl font-bold text-base-content mb-6 flex items-center">
-                      <svg className="w-5 h-5 mr-2 text-secondary" fill="currentColor" viewBox="0 0 20 20">
+                  <div className="bg-gradient-to-r from-secondary/10 to-accent/10 p-4 rounded-lg border border-secondary/20 backdrop-blur-sm">
+                    <h3 className="text-lg font-bold text-base-content mb-4 flex items-center">
+                      <svg className="w-4 h-4 mr-2 text-secondary" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
                       </svg>
                       Account Details
                     </h3>
-                    <div className="space-y-4">
-                      <div className="bg-base-100/80 p-4 rounded-lg shadow-sm border border-secondary/10">
-                        <label className="text-sm font-semibold text-base-content/70">Account Type</label>
+                    <div className="space-y-3">
+                      <div className="bg-base-100/80 p-3 rounded-lg shadow-sm border border-secondary/10">
+                        <label className="text-xs font-semibold text-base-content/70 uppercase tracking-wide">Account Type</label>
                         <div className="mt-1">
                           {user.isBreeder ? (
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary/20 text-primary border border-primary/30">
-                              <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/20 text-primary border border-primary/30">
+                              <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M23,11.5C23,11.5 21.5,9 18.5,9C15.5,9 14,11.5 14,11.5V10.5C14,8.57 12.43,7 10.5,7C8.57,7 7,8.57 7,10.5V11.5C7,11.5 5.5,9 2.5,9C1.12,9 0,10.12 0,11.5C0,12.88 1.12,14 2.5,14C5.5,14 7,11.5 7,11.5V12.5C7,14.43 8.57,16 10.5,16C12.43,16 14,14.43 14,12.5V11.5C14,11.5 15.5,14 18.5,14C21.88,14 23,12.88 23,11.5Z"/>
                               </svg>
                               Breeder
                             </span>
                           ) : (
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-secondary/20 text-secondary border border-secondary/30">
-                              <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-secondary/20 text-secondary border border-secondary/30">
+                              <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"/>
                               </svg>
                               Enthusiast
@@ -632,19 +646,19 @@ const Profile: React.FC = () => {
                           )}
                         </div>
                       </div>
-                      <div className="bg-base-100/80 p-4 rounded-lg shadow-sm border border-secondary/10">
-                        <label className="text-sm font-semibold text-base-content/70">Status</label>
+                      <div className="bg-base-100/80 p-3 rounded-lg shadow-sm border border-secondary/10">
+                        <label className="text-xs font-semibold text-base-content/70 uppercase tracking-wide">Status</label>
                         <div className="mt-1">
                           {user.isVerified ? (
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-success/20 text-success border border-success/30">
-                              <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-success/20 text-success border border-success/30">
+                              <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
                               </svg>
                               Verified
                             </span>
                           ) : (
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-warning/20 text-warning border border-warning/30">
-                              <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-warning/20 text-warning border border-warning/30">
+                              <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
                               </svg>
                               Unverified
@@ -652,39 +666,39 @@ const Profile: React.FC = () => {
                           )}
                         </div>
                       </div>
-                      <div className="bg-base-100/80 p-4 rounded-lg shadow-sm border border-secondary/10">
-                        <label className="text-sm font-semibold text-base-content/70">Member Since</label>
-                        <p className="text-lg text-base-content font-medium">{new Date(user.createdAt).toLocaleDateString()}</p>
+                      <div className="bg-base-100/80 p-3 rounded-lg shadow-sm border border-secondary/10">
+                        <label className="text-xs font-semibold text-base-content/70 uppercase tracking-wide">Member Since</label>
+                        <p className="text-sm text-base-content font-medium mt-1">{new Date(user.createdAt).toLocaleDateString()}</p>
                       </div>
                     </div>
                   </div>
                 </div>
 
                 {user.bio && (
-                  <div className="bg-gradient-to-r from-accent/10 to-primary/10 p-6 rounded-xl border border-accent/20 backdrop-blur-sm">
-                    <h3 className="text-xl font-bold text-base-content mb-4 flex items-center">
-                      <svg className="w-5 h-5 mr-2 text-accent" fill="currentColor" viewBox="0 0 20 20">
+                  <div className="bg-gradient-to-r from-accent/10 to-primary/10 p-4 rounded-lg border border-accent/20 backdrop-blur-sm">
+                    <h3 className="text-lg font-bold text-base-content mb-3 flex items-center">
+                      <svg className="w-4 h-4 mr-2 text-accent" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M18 13V5a2 2 0 00-2-2H4a2 2 0 00-2 2v8a2 2 0 002 2h3l3 3 3-3h3a2 2 0 002-2zM5 7a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zm1 3a1 1 0 100 2h3a1 1 0 100-2H6z" clipRule="evenodd"/>
                       </svg>
                       About Me
                     </h3>
-                    <div className="bg-base-100/80 p-4 rounded-lg shadow-sm border border-accent/10">
-                      <p className="text-base-content leading-relaxed">{user.bio}</p>
+                    <div className="bg-base-100/80 p-3 rounded-lg shadow-sm border border-accent/10">
+                      <p className="text-sm text-base-content leading-relaxed">{user.bio}</p>
                     </div>
                   </div>
                 )}
 
                 {(user.locationCity || user.locationState || user.locationCountry) && (
-                  <div className="bg-gradient-to-r from-secondary/10 to-primary/10 p-6 rounded-xl border border-secondary/20 backdrop-blur-sm">
-                    <h3 className="text-xl font-bold text-base-content mb-4 flex items-center">
-                      <svg className="w-5 h-5 mr-2 text-secondary" fill="currentColor" viewBox="0 0 20 20">
+                  <div className="bg-gradient-to-r from-secondary/10 to-primary/10 p-4 rounded-lg border border-secondary/20 backdrop-blur-sm">
+                    <h3 className="text-lg font-bold text-base-content mb-3 flex items-center">
+                      <svg className="w-4 h-4 mr-2 text-secondary" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd"/>
                       </svg>
                       Location
                     </h3>
-                    <div className="bg-base-100/80 p-4 rounded-lg shadow-sm border border-secondary/10">
-                      <p className="text-lg text-base-content font-medium flex items-center">
-                        <svg className="w-4 h-4 mr-2 text-base-content/60" fill="currentColor" viewBox="0 0 20 20">
+                    <div className="bg-base-100/80 p-3 rounded-lg shadow-sm border border-secondary/10">
+                      <p className="text-sm text-base-content font-medium flex items-center">
+                        <svg className="w-3 h-3 mr-2 text-base-content/60" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd"/>
                         </svg>
                         {[user.locationCity, user.locationState, user.locationCountry]
@@ -707,10 +721,10 @@ const Profile: React.FC = () => {
                * - Form submission handling
                */
               // Edit Mode
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-semibold text-base-content mb-2">
+                    <label className="block text-sm font-semibold text-base-content mb-1">
                       First Name
                     </label>
                     <input
@@ -718,13 +732,13 @@ const Profile: React.FC = () => {
                       name="firstName"
                       value={formData.firstName || ''}
                       onChange={handleChange}
-                      className="input-birdsphere w-full h-12 px-4 text-base rounded-xl transition-all duration-300"
+                      className="input-birdsphere w-full px-3 py-2 text-sm rounded-lg transition-all duration-300"
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-base-content mb-2">
+                    <label className="block text-sm font-semibold text-base-content mb-1">
                       Last Name
                     </label>
                     <input
@@ -732,14 +746,14 @@ const Profile: React.FC = () => {
                       name="lastName"
                       value={formData.lastName || ''}
                       onChange={handleChange}
-                      className="input-birdsphere w-full h-12 px-4 text-base rounded-xl transition-all duration-300"
+                      className="input-birdsphere w-full px-3 py-2 text-sm rounded-lg transition-all duration-300"
                       required
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-base-content mb-2">
+                  <label className="block text-sm font-semibold text-base-content mb-1">
                     Phone Number (Optional)
                   </label>
                   <input
@@ -747,34 +761,34 @@ const Profile: React.FC = () => {
                     name="phone"
                     value={formData.phone || ''}
                     onChange={handleChange}
-                    className="input-birdsphere w-full h-12 px-4 text-base rounded-xl transition-all duration-300"
+                    className="input-birdsphere w-full px-3 py-2 text-sm rounded-lg transition-all duration-300"
                     placeholder="+1 (555) 123-4567"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-base-content mb-2">
+                  <label className="block text-sm font-semibold text-base-content mb-1">
                     Bio (Optional)
                   </label>
                   <textarea
                     name="bio"
                     value={formData.bio || ''}
                     onChange={handleChange}
-                    className="input-birdsphere w-full px-4 py-3 text-base rounded-xl transition-all duration-300 resize-none"
+                    className="input-birdsphere w-full px-3 py-2 text-sm rounded-lg transition-all duration-300 resize-none"
                     placeholder="Tell us about yourself and your interest in birds..."
-                    rows={4}
+                    rows={3}
                   />
                 </div>
 
-                <div className="flex items-center my-6">
+                <div className="flex items-center my-4">
                   <div className="flex-1 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent"></div>
-                  <span className="px-4 text-sm font-medium text-base-content bg-base-200/20 rounded-full backdrop-blur-sm">Location</span>
+                  <span className="px-3 text-sm font-medium text-base-content bg-base-200/20 rounded-full backdrop-blur-sm">Location</span>
                   <div className="flex-1 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent"></div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-semibold text-base-content mb-2">
+                    <label className="block text-sm font-semibold text-base-content mb-1">
                       City
                     </label>
                     <input
@@ -782,13 +796,13 @@ const Profile: React.FC = () => {
                       name="locationCity"
                       value={formData.locationCity || ''}
                       onChange={handleChange}
-                      className="input-birdsphere w-full h-12 px-4 text-base rounded-xl transition-all duration-300"
+                      className="input-birdsphere w-full px-3 py-2 text-sm rounded-lg transition-all duration-300"
                       placeholder="New York"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-base-content mb-2">
+                    <label className="block text-sm font-semibold text-base-content mb-1">
                       State/Province
                     </label>
                     <input
@@ -796,13 +810,13 @@ const Profile: React.FC = () => {
                       name="locationState"
                       value={formData.locationState || ''}
                       onChange={handleChange}
-                      className="input-birdsphere w-full h-12 px-4 text-base rounded-xl transition-all duration-300"
+                      className="input-birdsphere w-full px-3 py-2 text-sm rounded-lg transition-all duration-300"
                       placeholder="NY"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-base-content mb-2">
+                    <label className="block text-sm font-semibold text-base-content mb-1">
                       Country
                     </label>
                     <input
@@ -810,19 +824,19 @@ const Profile: React.FC = () => {
                       name="locationCountry"
                       value={formData.locationCountry || ''}
                       onChange={handleChange}
-                      className="input-birdsphere w-full h-12 px-4 text-base rounded-xl transition-all duration-300"
+                      className="input-birdsphere w-full px-3 py-2 text-sm rounded-lg transition-all duration-300"
                       placeholder="USA"
                     />
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-3 p-4 bg-primary/10 rounded-xl border border-primary/20">
+                <div className="flex items-center space-x-3 p-3 bg-primary/10 rounded-lg border border-primary/20">
                   <input
                     type="checkbox"
                     name="isBreeder"
                     checked={formData.isBreeder || false}
                     onChange={handleChange}
-                    className="w-5 h-5 text-primary rounded focus:ring-primary/20"
+                    className="w-4 h-4 text-primary rounded focus:ring-primary/20"
                   />
                   <label className="text-sm font-medium text-base-content flex items-center space-x-2">
                     <span>I am a professional bird breeder</span>
@@ -832,10 +846,10 @@ const Profile: React.FC = () => {
                   </label>
                 </div>
 
-                <div className="mt-8">
+                <div className="mt-6">
                   <button
                     type="submit"
-                    className={`btn-birdsphere w-full h-12 text-lg rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105 active:scale-95 group ${isLoading ? 'animate-pulse' : ''}`}
+                    className={`btn-birdsphere w-full text-sm rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105 active:scale-95 group ${isLoading ? 'animate-pulse' : ''}`}
                     disabled={isLoading}
                   >
                     {isLoading ? (
@@ -846,7 +860,7 @@ const Profile: React.FC = () => {
                     ) : (
                       <div className="flex items-center justify-center space-x-2">
                         <span>Update Profile</span>
-                        <svg className="w-5 h-5 transform group-hover:translate-x-1 transition-transform" fill="currentColor" viewBox="0 0 20 20">
+                        <svg className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd"/>
                         </svg>
                       </div>

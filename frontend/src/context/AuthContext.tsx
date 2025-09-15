@@ -46,6 +46,9 @@ interface AuthContextType {
   
   /** Loading state for async authentication operations */
   isLoading: boolean;
+
+  /** Flag indicating if auth context has completed initial setup */
+  isInitialized: boolean;
   
   /** 
    * Authenticate user with credentials
@@ -165,10 +168,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   
   // Loading state: true during authentication operations
   const [isLoading, setIsLoading] = useState(true);
+
+  // Initialization state: tracks if auth context setup is complete
+  const [isInitialized, setIsInitialized] = useState(false);
   
   // Error state: stores error messages from failed operations
   const [error, setError] = useState<string | null>(null);
-
+  
   /**
    * Authentication Initialization Effect
    * 
@@ -189,32 +195,54 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
    * - Does not redirect on failure (handled by axios interceptors)
    */
   useEffect(() => {
+    let isMounted = true; // Track component mount status to prevent state updates after unmount
+    
     const initializeAuth = async () => {
       try {
+        console.log('🔍 Starting auth initialization...');
         // Attempt to validate existing authentication with server
         // This checks if the httpOnly cookie contains a valid JWT token
         const currentUser = await authService.checkAuthentication();
-        
-        if (currentUser) {
-          // Valid authentication found - restore user state
-          setUser(currentUser);
-        } else {
-          // No valid authentication - set unauthenticated state
-          setUser(null);
+        console.log('✅ Auth check result:', currentUser ? 'User found' : 'No user found');
+
+        // Only update state if component is still mounted
+        if (isMounted) {
+          if (currentUser) {
+            // Valid authentication found - restore user state
+            console.log('👤 Setting user:', currentUser.email);
+            setUser(currentUser);
+          } else {
+            // No valid authentication - set unauthenticated state
+            console.log('❌ No user found, setting user to null');
+            setUser(null);
+          }
         }
       } catch (err) {
         // Authentication check failed - log error but don't disrupt UX
-        console.error('Auth initialization error:', err);
-        setUser(null);
+        console.error('❌ Auth initialization error:', err);
+
+        // Only update state if component is still mounted
+        if (isMounted) {
+          setUser(null);
+        }
         // Don't redirect here - let the axios interceptor handle navigation
       } finally {
         // Always complete loading state regardless of success/failure
-        setIsLoading(false);
+        // Only update state if component is still mounted
+        if (isMounted) {
+          setIsLoading(false);
+          setIsInitialized(true);
+        }
       }
     };
 
     initializeAuth();
-  }, []);
+    
+    // Cleanup function to prevent state updates after component unmounts
+    return () => {
+      isMounted = false;
+    };
+  }, []); // Empty dependency array - run only once on mount
 
   /**
    * User Login Method
@@ -474,6 +502,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     
     // Loading state for async operations
     isLoading,
+
+    // Initialization state for tracking setup completion
+    isInitialized,
     
     // Authentication methods
     login,

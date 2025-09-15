@@ -144,17 +144,36 @@ api.interceptors.response.use(
   (error) => {
     // Handle authentication failures (401 Unauthorized)
     if (error.response?.status === 401) {
-      // Security: Redirect to login on authentication failure
-      // This ensures users can't access protected resources without valid auth
-      window.location.href = '/login';
+      // Only redirect if user is not already on login or register pages
+      // This prevents infinite redirect loops during initial auth checks
+      const currentPath = window.location.pathname;
+      const isOnAuthPage = currentPath === '/login' || currentPath === '/register' || currentPath === '/';
+      
+      if (!isOnAuthPage) {
+        // Security: Redirect to login on authentication failure
+        // This ensures users can't access protected resources without valid auth
+        window.location.href = '/login';
+        return Promise.reject(new Error('Authentication required'));
+      }
+      
+      // If already on auth page, just reject without redirect
       return Promise.reject(new Error('Authentication required'));
     }
     
     // Handle authorization failures (403 Forbidden)
     if (error.response?.status === 403) {
-      // User is authenticated but lacks necessary permissions
-      // Redirect to login to allow different user or upgrade permissions
-      window.location.href = '/login';
+      // Only redirect if not already on auth pages
+      const currentPath = window.location.pathname;
+      const isOnAuthPage = currentPath === '/login' || currentPath === '/register' || currentPath === '/';
+      
+      if (!isOnAuthPage) {
+        // User is authenticated but lacks necessary permissions
+        // Redirect to login to allow different user or upgrade permissions
+        window.location.href = '/login';
+        return Promise.reject(new Error('Insufficient permissions'));
+      }
+      
+      // If already on auth page, just reject without redirect
       return Promise.reject(new Error('Insufficient permissions'));
     }
     
