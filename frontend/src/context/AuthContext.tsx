@@ -210,10 +210,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           if (currentUser) {
             // Valid authentication found - restore user state
             console.log('👤 Setting user:', currentUser.email);
+            console.log('🐾 AuthContext - currentUser animalInterests:', currentUser.animalInterests);
+            console.log('🔍 AuthContext - full currentUser object:', currentUser);
             setUser(currentUser);
           } else {
             // No valid authentication - set unauthenticated state
             console.log('❌ No user found, setting user to null');
+            console.trace('❌ Stack trace for setUser(null):');
             setUser(null);
           }
         }
@@ -406,7 +409,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       // Send update request to server
       const updatedUser = await authService.updateProfile(userData);
-      
+
+      // Debug: Log the updated user data
+      console.log('🔄 AuthContext - updateProfile response:', updatedUser);
+      console.log('🐾 AuthContext - animalInterests:', updatedUser.animalInterests);
+
       // Update local state with server response
       setUser(updatedUser);
     } catch (err: any) {

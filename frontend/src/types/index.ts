@@ -50,6 +50,11 @@ export interface User {
   recentRatings?: UserRating[];
 }
 
+// Type for profile update requests - allows animalInterests to be sent as IDs
+export type UserProfileUpdate = Omit<Partial<User>, 'animalInterests'> & {
+  animalInterests?: number[];
+};
+
 export interface LoginCredentials {
   email: string;
   password: string;

@@ -220,7 +220,7 @@ class User {
       await db.query('DELETE FROM user_animal_interests WHERE user_id = $1', [userId]);
 
       // Add new interests
-      if (categoryIds.length > 0) {
+      if (categoryIds && categoryIds.length > 0) {
         const insertValues = categoryIds.map((_, index) => `($1, $${index + 2})`).join(', ');
         const query = `INSERT INTO user_animal_interests (user_id, category_id) VALUES ${insertValues}`;
         await db.query(query, [userId, ...categoryIds]);

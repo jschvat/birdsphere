@@ -77,6 +77,8 @@ export const authService = {
    */
   async getProfile(): Promise<User> {
     const response = await api.get('/auth/profile');
+    console.log('🔍 authService.getProfile response:', response.data);
+    console.log('🐾 authService.getProfile animalInterests:', response.data.animalInterests);
     return response.data;
   },
 

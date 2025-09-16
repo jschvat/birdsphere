@@ -143,6 +143,36 @@ const Profile: React.FC = () => {
   }, [user, navigate, isLoading, isInitialized]); // Include isInitialized to prevent race conditions
 
   /**
+   * Debug Animal Interests Effect with Auto-Fix
+   *
+   * Logs animal interests data for debugging display issues and automatically
+   * refreshes user data if animal interests are missing but user is logged in
+   */
+  useEffect(() => {
+    console.log('🔄 Profile debug - user changed:', {
+      userExists: !!user,
+      userId: user?.id,
+      animalInterests: user?.animalInterests,
+      animalInterestsLength: user?.animalInterests?.length
+    });
+
+    if (user?.animalInterests) {
+      if (user.animalInterests.length > 0) {
+        console.log('✅ Profile debug - rendering', user.animalInterests.length, 'animal interests:',
+          user.animalInterests.map(i => i.name).join(', '));
+      } else {
+        console.log('❌ Profile debug - animalInterests is empty array:', user.animalInterests);
+      }
+    } else if (user?.id && !isLoading) {
+      // User is logged in but animal interests are missing - auto refresh
+      console.log('🔧 Profile debug - auto-refreshing user data because animalInterests is missing');
+      refreshUser();
+    } else {
+      console.log('❌ Profile debug - no animalInterests property:', user?.animalInterests);
+    }
+  }, [user?.animalInterests, user?.id, isLoading, refreshUser]);
+
+  /**
    * Edit Mode Persistence Effect
    *
    * Saves the edit mode state to localStorage whenever it changes
@@ -232,8 +262,14 @@ const Profile: React.FC = () => {
     e.preventDefault();
 
     try {
+      // Prepare data for server - convert animalInterests objects to IDs
+      const dataToSend = {
+        ...formData,
+        animalInterests: formData.animalInterests?.map(interest => interest.id) || []
+      } as unknown as Partial<User>;
+
       // Send profile update request to server
-      await updateProfile(formData);
+      await updateProfile(dataToSend);
 
       // Optimistic UI update: switch back to view mode
       setIsEditing(false);
@@ -570,6 +606,17 @@ const Profile: React.FC = () => {
                       <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
                     </svg>
                     <span>{isEditing ? 'Cancel' : 'Edit'}</span>
+                  </div>
+                </button>
+                <button
+                  onClick={refreshUser}
+                  className="btn bg-info/20 hover:bg-info/30 border border-info/30 text-info hover:text-info font-semibold rounded-lg transition-all duration-200 transform hover:-translate-y-0.5 backdrop-blur-sm"
+                >
+                  <div className="flex items-center space-x-2">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd"/>
+                    </svg>
+                    <span>Refresh</span>
                   </div>
                 </button>
                 <button

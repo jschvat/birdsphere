@@ -68,6 +68,15 @@ const updateUserSchema = Joi.object({
   locationCountry: Joi.string().max(50).optional().allow(''),
   latitude: Joi.number().min(-90).max(90).optional().allow(null),
   longitude: Joi.number().min(-180).max(180).optional().allow(null),
+  // New fields for extended user profile
+  userRoles: Joi.array().items(Joi.string().valid('breeder', 'buyer', 'enthusiast', 'trainer', 'rescue_operator')).optional(),
+  animalInterests: Joi.array().items(Joi.number().integer()).optional(),
+  addressStreet: Joi.string().max(255).optional().allow(''),
+  addressCity: Joi.string().max(100).optional().allow(''),
+  addressState: Joi.string().max(100).optional().allow(''),
+  addressCountry: Joi.string().max(100).optional().allow(''),
+  addressPostalCode: Joi.string().max(20).optional().allow(''),
+  // Keep for backward compatibility
   isBreeder: Joi.boolean().optional()
 });
 

@@ -279,7 +279,17 @@ const getProfile = async (req, res) => {
       isBreeder: user.is_breeder,
       isVerified: user.is_verified,
       createdAt: user.created_at,
-      lastLogin: user.last_login
+      lastLogin: user.last_login,
+      // New fields for extended profile
+      userRoles: user.user_roles || [],
+      animalInterests: user.animalInterests || [],
+      rating: user.rating || 0,
+      ratingCount: user.rating_count || 0,
+      addressStreet: user.address_street,
+      addressCity: user.address_city,
+      addressState: user.address_state,
+      addressCountry: user.address_country,
+      addressPostalCode: user.address_postal_code
     };
     
     res.json(response);
@@ -291,7 +301,6 @@ const getProfile = async (req, res) => {
 
 const updateProfile = async (req, res) => {
   try {
-    
     const updates = {};
     const userData = req.validatedData;
 
@@ -303,12 +312,24 @@ const updateProfile = async (req, res) => {
       locationState: 'location_state',
       locationCountry: 'location_country',
       isBreeder: 'is_breeder',
-      profileImage: 'profile_image'
+      profileImage: 'profile_image',
+      userRoles: 'user_roles',
+      // animalInterests is handled separately by User.update() - don't map it
+      addressStreet: 'address_street',
+      addressCity: 'address_city',
+      addressState: 'address_state',
+      addressCountry: 'address_country',
+      addressPostalCode: 'address_postal_code'
     };
 
     for (const [key, value] of Object.entries(userData)) {
-      const dbField = fieldMapping[key] || key;
-      updates[dbField] = value;
+      if (key === 'animalInterests') {
+        // Keep animalInterests as camelCase - User.update() expects it this way
+        updates[key] = value;
+      } else {
+        const dbField = fieldMapping[key] || key;
+        updates[dbField] = value;
+      }
     }
 
     
@@ -349,7 +370,17 @@ const updateProfile = async (req, res) => {
         },
         isBreeder: updatedUser.is_breeder,
         isVerified: updatedUser.is_verified,
-        updatedAt: updatedUser.updated_at
+        updatedAt: updatedUser.updated_at,
+        // New fields for extended profile
+        userRoles: updatedUser.user_roles || [],
+        animalInterests: updatedUser.animalInterests || [],
+        rating: updatedUser.rating || 0,
+        ratingCount: updatedUser.rating_count || 0,
+        addressStreet: updatedUser.address_street,
+        addressCity: updatedUser.address_city,
+        addressState: updatedUser.address_state,
+        addressCountry: updatedUser.address_country,
+        addressPostalCode: updatedUser.address_postal_code
       }
     });
   } catch (error) {

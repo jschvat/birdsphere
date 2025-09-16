@@ -46,7 +46,7 @@ import axios from 'axios';
  * Production deployments should set REACT_APP_API_URL to the appropriate
  * backend server URL (e.g., https://api.birdsphere.com)
  */
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3010/api';
 
 /**
  * Axios Instance Configuration
