@@ -22,6 +22,9 @@ const getUserProfile = async (req, res) => {
     // Get user's active listings
     const listings = await Listing.findBySeller(user.id, 'active');
 
+    // Get user ratings
+    const ratings = await User.getUserRatings(user.id, 5);
+
     const response = {
       user: {
         id: user.id,
@@ -35,9 +38,20 @@ const getUserProfile = async (req, res) => {
           state: user.location_state,
           country: user.location_country
         },
-        isBreeder: user.is_breeder,
+        address: {
+          street: user.address_street,
+          city: user.address_city,
+          state: user.address_state,
+          country: user.address_country,
+          postalCode: user.address_postal_code
+        },
+        userRoles: user.user_roles || [],
+        rating: parseFloat(user.rating) || 0,
+        ratingCount: user.rating_count || 0,
+        animalInterests: user.animalInterests || [],
         isVerified: user.is_verified,
-        createdAt: user.created_at
+        createdAt: user.created_at,
+        recentRatings: ratings
       },
       listings: listings.map(listing => ({
         id: listing.id,
@@ -67,7 +81,7 @@ const getUserProfile = async (req, res) => {
 
 const findNearbyUsers = async (req, res) => {
   try {
-    const { latitude, longitude, radius = 50, limit = 20 } = req.query;
+    const { latitude, longitude, radius = 50, limit = 20, userRoles, animalInterests } = req.query;
     
     if (!latitude || !longitude) {
       return res.status(400).json({ error: 'Latitude and longitude are required' });
@@ -84,7 +98,15 @@ const findNearbyUsers = async (req, res) => {
       return res.json(cachedResult);
     }
 
-    const users = await User.searchNearby(lat, lng, radiusKm, parseInt(limit));
+    const options = {};
+    if (userRoles) {
+      options.userRoles = Array.isArray(userRoles) ? userRoles : [userRoles];
+    }
+    if (animalInterests) {
+      options.animalInterests = Array.isArray(animalInterests) ? animalInterests.map(Number) : [Number(animalInterests)];
+    }
+
+    const users = await User.searchNearby(lat, lng, radiusKm, parseInt(limit), options);
 
     const formattedUsers = users.map(user => ({
       id: user.id,
@@ -96,7 +118,9 @@ const findNearbyUsers = async (req, res) => {
         city: user.location_city,
         state: user.location_state
       },
-      isBreeder: user.is_breeder,
+      userRoles: user.user_roles || [],
+      rating: parseFloat(user.rating) || 0,
+      ratingCount: user.rating_count || 0,
       distance: parseFloat(user.distance)
     }));
 
@@ -133,7 +157,9 @@ const getAllUsers = async (req, res) => {
         username: user.username,
         firstName: user.first_name,
         lastName: user.last_name,
-        isBreeder: user.is_breeder,
+        userRoles: user.user_roles || [],
+        rating: parseFloat(user.rating) || 0,
+        ratingCount: user.rating_count || 0,
         location: {
           city: user.location_city,
           state: user.location_state,
@@ -180,7 +206,17 @@ const getCurrentUserProfile = async (req, res) => {
           longitude: user.longitude
         } : null
       },
-      isBreeder: user.is_breeder,
+      address: {
+        street: user.address_street,
+        city: user.address_city,
+        state: user.address_state,
+        country: user.address_country,
+        postalCode: user.address_postal_code
+      },
+      userRoles: user.user_roles || [],
+      rating: parseFloat(user.rating) || 0,
+      ratingCount: user.rating_count || 0,
+      animalInterests: user.animalInterests || [],
       isVerified: user.is_verified,
       createdAt: user.created_at,
       lastLogin: user.last_login
@@ -198,11 +234,13 @@ const updateProfile = async (req, res) => {
     const userId = req.user.id;
     const updates = req.body;
 
-    // Filter allowed fields
+    // Filter allowed fields (rating is excluded as it's set by other users)
     const allowedFields = [
       'firstName', 'lastName', 'phone', 'bio', 'profileImage',
       'locationCity', 'locationState', 'locationCountry',
-      'latitude', 'longitude', 'isBreeder'
+      'latitude', 'longitude', 'userRoles',
+      'addressStreet', 'addressCity', 'addressState', 'addressCountry', 'addressPostalCode',
+      'animalInterests'
     ];
 
     const filteredUpdates = {};
@@ -236,7 +274,17 @@ const updateProfile = async (req, res) => {
           state: updatedUser.location_state,
           country: updatedUser.location_country
         },
-        isBreeder: updatedUser.is_breeder
+        address: {
+          street: updatedUser.address_street,
+          city: updatedUser.address_city,
+          state: updatedUser.address_state,
+          country: updatedUser.address_country,
+          postalCode: updatedUser.address_postal_code
+        },
+        userRoles: updatedUser.user_roles || [],
+        rating: parseFloat(updatedUser.rating) || 0,
+        ratingCount: updatedUser.rating_count || 0,
+        animalInterests: updatedUser.animalInterests || []
       }
     });
   } catch (error) {
@@ -245,10 +293,64 @@ const updateProfile = async (req, res) => {
   }
 };
 
+// New endpoints for animal categories and ratings
+const getAnimalCategories = async (req, res) => {
+  try {
+    const categories = await User.getAnimalCategoriesTree();
+    res.json({ categories });
+  } catch (error) {
+    console.error('Get animal categories error:', error);
+    res.status(500).json({ error: 'Failed to get animal categories' });
+  }
+};
+
+const addUserRating = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { rating, comment, transactionType } = req.body;
+    const raterId = req.user.id;
+
+    if (raterId === userId) {
+      return res.status(400).json({ error: 'Cannot rate yourself' });
+    }
+
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({ error: 'Rating must be between 1 and 5' });
+    }
+
+    const ratingRecord = await User.addRating(raterId, userId, rating, comment, transactionType);
+
+    res.json({
+      message: 'Rating added successfully',
+      rating: ratingRecord
+    });
+  } catch (error) {
+    console.error('Add user rating error:', error);
+    res.status(500).json({ error: 'Failed to add rating' });
+  }
+};
+
+const getUserRatings = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const limit = parseInt(req.query.limit) || 10;
+
+    const ratings = await User.getUserRatings(userId, limit);
+
+    res.json({ ratings });
+  } catch (error) {
+    console.error('Get user ratings error:', error);
+    res.status(500).json({ error: 'Failed to get user ratings' });
+  }
+};
+
 module.exports = {
   getUserProfile,
   findNearbyUsers,
   getAllUsers,
   getCurrentUserProfile,
-  updateProfile
+  updateProfile,
+  getAnimalCategories,
+  addUserRating,
+  getUserRatings
 };

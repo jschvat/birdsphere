@@ -41,7 +41,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { uploadService } from '../services/uploadService';
-import { User } from '../types';
+import { animalService } from '../services/animalService';
+import { User, AnimalCategory } from '../types';
+import TreeView from '../components/TreeView';
 
 /**
  * Main Profile Component
@@ -78,7 +80,13 @@ const Profile: React.FC = () => {
   
   /** Stores blob URL for avatar preview during upload process */
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  
+
+  /** Animal categories for tree view selection */
+  const [animalCategories, setAnimalCategories] = useState<AnimalCategory[]>([]);
+
+  /** Loading state for animal categories */
+  const [loadingCategories, setLoadingCategories] = useState(false);
+
   /** Reference to hidden file input for programmatic file selection */
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -129,7 +137,8 @@ const Profile: React.FC = () => {
       locationCity: user.locationCity || '',
       locationState: user.locationState || '',
       locationCountry: user.locationCountry || '',
-      isBreeder: user.isBreeder || false,
+      userRoles: user.userRoles || [],
+      animalInterests: user.animalInterests || [],
     });
   }, [user, navigate, isLoading, isInitialized]); // Include isInitialized to prevent race conditions
 
@@ -142,6 +151,28 @@ const Profile: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('profile-edit-mode', isEditing.toString());
   }, [isEditing]);
+
+  /**
+   * Animal Categories Loading Effect
+   *
+   * Loads animal categories from the API when the component mounts.
+   * This provides the data for the tree view component.
+   */
+  useEffect(() => {
+    const loadAnimalCategories = async () => {
+      try {
+        setLoadingCategories(true);
+        const response = await animalService.getAnimalCategories();
+        setAnimalCategories(response.categories);
+      } catch (error) {
+        console.error('Failed to load animal categories:', error);
+      } finally {
+        setLoadingCategories(false);
+      }
+    };
+
+    loadAnimalCategories();
+  }, []);
 
   /**
    * Form Input Change Handler
@@ -627,21 +658,31 @@ const Profile: React.FC = () => {
                     </h3>
                     <div className="space-y-3">
                       <div className="bg-base-100/80 p-3 rounded-lg shadow-sm border border-secondary/10">
-                        <label className="text-xs font-semibold text-base-content/70 uppercase tracking-wide">Account Type</label>
-                        <div className="mt-1">
-                          {user.isBreeder ? (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/20 text-primary border border-primary/30">
-                              <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M23,11.5C23,11.5 21.5,9 18.5,9C15.5,9 14,11.5 14,11.5V10.5C14,8.57 12.43,7 10.5,7C8.57,7 7,8.57 7,10.5V11.5C7,11.5 5.5,9 2.5,9C1.12,9 0,10.12 0,11.5C0,12.88 1.12,14 2.5,14C5.5,14 7,11.5 7,11.5V12.5C7,14.43 8.57,16 10.5,16C12.43,16 14,14.43 14,12.5V11.5C14,11.5 15.5,14 18.5,14C21.88,14 23,12.88 23,11.5Z"/>
-                              </svg>
-                              Breeder
-                            </span>
-                          ) : (
+                        <label className="text-xs font-semibold text-base-content/70 uppercase tracking-wide">User Roles</label>
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {user.userRoles && user.userRoles.length > 0 ? user.userRoles.map((role) => {
+                            const roleConfig = {
+                              breeder: { color: 'primary', icon: 'M23,11.5C23,11.5 21.5,9 18.5,9C15.5,9 14,11.5 14,11.5V10.5C14,8.57 12.43,7 10.5,7C8.57,7 7,8.57 7,10.5V11.5C7,11.5 5.5,9 2.5,9C1.12,9 0,10.12 0,11.5C0,12.88 1.12,14 2.5,14C5.5,14 7,11.5 7,11.5V12.5C7,14.43 8.57,16 10.5,16C12.43,16 14,14.43 14,12.5V11.5C14,11.5 15.5,14 18.5,14C21.88,14 23,12.88 23,11.5Z' },
+                              buyer: { color: 'secondary', icon: 'M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17M17 13v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6m8 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v4.01' },
+                              enthusiast: { color: 'accent', icon: 'M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z' },
+                              trainer: { color: 'info', icon: 'M12 14l9-5-9-5-9 5 9 5z M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z' },
+                              rescue_operator: { color: 'success', icon: 'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z' }
+                            };
+                            const config = roleConfig[role as keyof typeof roleConfig] || roleConfig.enthusiast;
+                            return (
+                              <span key={role} className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-${config.color}/20 text-${config.color} border border-${config.color}/30`}>
+                                <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d={config.icon}/>
+                                </svg>
+                                {role.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                              </span>
+                            );
+                          }) : (
                             <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-secondary/20 text-secondary border border-secondary/30">
                               <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"/>
                               </svg>
-                              Enthusiast
+                              No roles selected
                             </span>
                           )}
                         </div>
@@ -705,6 +746,71 @@ const Profile: React.FC = () => {
                           .filter(Boolean)
                           .join(', ')}
                       </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Animal Interests Section */}
+                {user.animalInterests && user.animalInterests.length > 0 && (
+                  <div className="bg-gradient-to-r from-accent/10 to-secondary/10 p-4 rounded-lg border border-accent/20 backdrop-blur-sm">
+                    <h3 className="text-lg font-bold text-base-content mb-3 flex items-center">
+                      <svg className="w-4 h-4 mr-2 text-accent" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 2L3 7v11c0 1.1.9 2 2 2h4v-6h2v6h4c1.1 0 2-.9 2-2V7l-7-5z"/>
+                      </svg>
+                      Animal Interests
+                    </h3>
+                    <div className="bg-base-100/80 p-3 rounded-lg shadow-sm border border-accent/10">
+                      <div className="flex flex-wrap gap-2">
+                        {user.animalInterests.map((interest) => (
+                          <span
+                            key={interest.id}
+                            className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-accent/20 text-accent border border-accent/30"
+                          >
+                            {interest.icon && <span className="mr-1">{interest.icon}</span>}
+                            {interest.name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Rating Section */}
+                {user.rating > 0 && (
+                  <div className="bg-gradient-to-r from-warning/10 to-info/10 p-4 rounded-lg border border-warning/20 backdrop-blur-sm">
+                    <h3 className="text-lg font-bold text-base-content mb-3 flex items-center">
+                      <svg className="w-4 h-4 mr-2 text-warning" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                      </svg>
+                      Community Rating
+                    </h3>
+                    <div className="bg-base-100/80 p-3 rounded-lg shadow-sm border border-warning/10">
+                      <div className="flex items-center space-x-4">
+                        <div className="flex items-center">
+                          <div className="flex">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <svg
+                                key={star}
+                                className={`w-5 h-5 ${
+                                  star <= Math.round(user.rating)
+                                    ? 'text-yellow-400'
+                                    : 'text-gray-300'
+                                }`}
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                              </svg>
+                            ))}
+                          </div>
+                          <span className="ml-2 text-sm text-base-content font-medium">
+                            {user.rating.toFixed(1)} out of 5
+                          </span>
+                        </div>
+                        <span className="text-sm text-base-content/70">
+                          ({user.ratingCount} {user.ratingCount === 1 ? 'review' : 'reviews'})
+                        </span>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -830,20 +936,114 @@ const Profile: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-3 p-3 bg-primary/10 rounded-lg border border-primary/20">
-                  <input
-                    type="checkbox"
-                    name="isBreeder"
-                    checked={formData.isBreeder || false}
-                    onChange={handleChange}
-                    className="w-4 h-4 text-primary rounded focus:ring-primary/20"
-                  />
-                  <label className="text-sm font-medium text-base-content flex items-center space-x-2">
-                    <span>I am a professional bird breeder</span>
-                    <svg className="w-4 h-4 text-secondary" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M23,11.5C23,11.5 21.5,9 18.5,9C15.5,9 14,11.5 14,11.5V10.5C14,8.57 12.43,7 10.5,7C8.57,7 7,8.57 7,10.5V11.5C7,11.5 5.5,9 2.5,9C1.12,9 0,10.12 0,11.5C0,12.88 1.12,14 2.5,14C5.5,14 7,11.5 7,11.5V12.5C7,14.43 8.57,16 10.5,16C12.43,16 14,14.43 14,12.5V11.5C14,11.5 15.5,14 18.5,14C21.88,14 23,12.88 23,11.5Z"/>
-                    </svg>
+                <div className="space-y-3">
+                  <label className="block text-sm font-semibold text-base-content mb-2">
+                    User Roles (Select all that apply)
                   </label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {[
+                      { value: 'breeder', label: 'Professional Breeder', icon: 'M23,11.5C23,11.5 21.5,9 18.5,9C15.5,9 14,11.5 14,11.5V10.5C14,8.57 12.43,7 10.5,7C8.57,7 7,8.57 7,10.5V11.5C7,11.5 5.5,9 2.5,9C1.12,9 0,10.12 0,11.5C0,12.88 1.12,14 2.5,14C5.5,14 7,11.5 7,11.5V12.5C7,14.43 8.57,16 10.5,16C12.43,16 14,14.43 14,12.5V11.5C14,11.5 15.5,14 18.5,14C21.88,14 23,12.88 23,11.5Z' },
+                      { value: 'buyer', label: 'Buyer/Enthusiast', icon: 'M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17M17 13v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6m8 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v4.01' },
+                      { value: 'trainer', label: 'Bird Trainer', icon: 'M12 14l9-5-9-5-9 5 9 5z M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z' },
+                      { value: 'rescue_operator', label: 'Rescue Operator', icon: 'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z' },
+                      { value: 'enthusiast', label: 'Bird Enthusiast', icon: 'M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z' }
+                    ].map((role) => (
+                      <div key={role.value} className="flex items-center space-x-3 p-3 bg-primary/10 rounded-lg border border-primary/20">
+                        <input
+                          type="checkbox"
+                          id={role.value}
+                          checked={(formData.userRoles || []).includes(role.value)}
+                          onChange={(e) => {
+                            const currentRoles = formData.userRoles || [];
+                            const newRoles = e.target.checked
+                              ? [...currentRoles, role.value]
+                              : currentRoles.filter(r => r !== role.value);
+                            setFormData({ ...formData, userRoles: newRoles });
+                          }}
+                          className="w-4 h-4 text-primary rounded focus:ring-primary/20"
+                        />
+                        <label htmlFor={role.value} className="text-sm font-medium text-base-content flex items-center space-x-2 cursor-pointer">
+                          <span>{role.label}</span>
+                          <svg className="w-4 h-4 text-secondary" fill="currentColor" viewBox="0 0 24 24">
+                            <path d={role.icon}/>
+                          </svg>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Animal Interests Tree Selection */}
+                <div className="space-y-3">
+                  <div className="flex items-center my-4">
+                    <div className="flex-1 h-px bg-gradient-to-r from-transparent via-accent/50 to-transparent"></div>
+                    <span className="px-3 text-sm font-medium text-base-content bg-base-200/20 rounded-full backdrop-blur-sm">Animal Interests</span>
+                    <div className="flex-1 h-px bg-gradient-to-r from-transparent via-accent/50 to-transparent"></div>
+                  </div>
+
+                  <label className="block text-sm font-semibold text-base-content mb-2">
+                    What animals do you work with or are interested in? (Select all that apply)
+                  </label>
+
+                  {loadingCategories ? (
+                    <div className="flex items-center justify-center p-8 border border-base-300 rounded-lg bg-base-100">
+                      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mr-2"></div>
+                      <span className="text-sm text-base-content/70">Loading animal categories...</span>
+                    </div>
+                  ) : animalCategories.length > 0 ? (
+                    <TreeView
+                      categories={animalCategories}
+                      selectedIds={(formData.animalInterests || []).map(interest => interest.id)}
+                      onSelectionChange={(selectedIds) => {
+                        // Convert selected IDs to AnimalCategory objects
+                        const findCategoriesByIds = (categories: AnimalCategory[], ids: number[]): AnimalCategory[] => {
+                          const found: AnimalCategory[] = [];
+                          const search = (cats: AnimalCategory[]) => {
+                            cats.forEach(cat => {
+                              if (ids.includes(cat.id)) {
+                                found.push(cat);
+                              }
+                              if (cat.children) {
+                                search(cat.children);
+                              }
+                            });
+                          };
+                          search(categories);
+                          return found;
+                        };
+
+                        const selectedCategories = findCategoriesByIds(animalCategories, selectedIds);
+                        setFormData({ ...formData, animalInterests: selectedCategories });
+                      }}
+                      readOnly={false}
+                      showIcons={true}
+                    />
+                  ) : (
+                    <div className="p-4 border border-base-300 rounded-lg bg-base-100 text-center">
+                      <span className="text-sm text-base-content/70">
+                        Unable to load animal categories. Please try refreshing the page.
+                      </span>
+                    </div>
+                  )}
+
+                  {formData.animalInterests && formData.animalInterests.length > 0 && (
+                    <div className="mt-2">
+                      <label className="block text-xs font-semibold text-base-content/70 mb-1">
+                        SELECTED INTERESTS
+                      </label>
+                      <div className="flex flex-wrap gap-1">
+                        {formData.animalInterests.map((interest) => (
+                          <span
+                            key={interest.id}
+                            className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-accent/20 text-accent border border-accent/30"
+                          >
+                            {interest.icon && <span className="mr-1">{interest.icon}</span>}
+                            {interest.name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="mt-6">

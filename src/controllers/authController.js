@@ -144,7 +144,17 @@ const register = async (req, res) => {
             longitude: parseFloat(user.longitude)
           } : null
         },
-        isBreeder: user.is_breeder,
+        address: {
+          street: user.address_street,
+          city: user.address_city,
+          state: user.address_state,
+          country: user.address_country,
+          postalCode: user.address_postal_code
+        },
+        userRoles: user.user_roles || [],
+        rating: parseFloat(user.rating) || 0,
+        ratingCount: user.rating_count || 0,
+        animalInterests: user.animalInterests || [],
         isVerified: user.is_verified,
         createdAt: user.created_at
       },

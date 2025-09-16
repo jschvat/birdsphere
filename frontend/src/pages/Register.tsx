@@ -17,7 +17,8 @@ const Register: React.FC = () => {
     locationCity: '',
     locationState: '',
     locationCountry: '',
-    isBreeder: false,
+    userRoles: [],
+    animalInterests: [],
   });
 
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -366,20 +367,41 @@ const Register: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex items-center space-x-3 p-4 bg-primary/10 rounded-xl border border-primary/20">
-                <input
-                  type="checkbox"
-                  name="isBreeder"
-                  checked={formData.isBreeder}
-                  onChange={handleChange}
-                  className="w-5 h-5 text-primary rounded focus:ring-primary/20"
-                />
-                <label className="text-sm font-medium text-base-content flex items-center space-x-2">
-                  <span>I am a professional bird breeder</span>
-                  <svg className="w-4 h-4 text-secondary" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M23,11.5C23,11.5 21.5,9 18.5,9C15.5,9 14,11.5 14,11.5V10.5C14,8.57 12.43,7 10.5,7C8.57,7 7,8.57 7,10.5V11.5C7,11.5 5.5,9 2.5,9C1.12,9 0,10.12 0,11.5C0,12.88 1.12,14 2.5,14C5.5,14 7,11.5 7,11.5V12.5C7,14.43 8.57,16 10.5,16C12.43,16 14,14.43 14,12.5V11.5C14,11.5 15.5,14 18.5,14C21.88,14 23,12.88 23,11.5Z"/>
-                  </svg>
+              <div className="space-y-3">
+                <label className="block text-sm font-semibold text-base-content mb-2">
+                  User Roles (Select all that apply)
                 </label>
+                <div className="grid grid-cols-1 gap-2">
+                  {[
+                    { value: 'breeder', label: 'Professional Breeder', icon: 'M23,11.5C23,11.5 21.5,9 18.5,9C15.5,9 14,11.5 14,11.5V10.5C14,8.57 12.43,7 10.5,7C8.57,7 7,8.57 7,10.5V11.5C7,11.5 5.5,9 2.5,9C1.12,9 0,10.12 0,11.5C0,12.88 1.12,14 2.5,14C5.5,14 7,11.5 7,11.5V12.5C7,14.43 8.57,16 10.5,16C12.43,16 14,14.43 14,12.5V11.5C14,11.5 15.5,14 18.5,14C21.88,14 23,12.88 23,11.5Z' },
+                    { value: 'buyer', label: 'Buyer/Enthusiast', icon: 'M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17M17 13v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6m8 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v4.01' },
+                    { value: 'trainer', label: 'Bird Trainer', icon: 'M12 14l9-5-9-5-9 5 9 5z M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z' },
+                    { value: 'rescue_operator', label: 'Rescue Operator', icon: 'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z' },
+                    { value: 'enthusiast', label: 'Bird Enthusiast', icon: 'M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z' }
+                  ].map((role) => (
+                    <div key={role.value} className="flex items-center space-x-3 p-3 bg-primary/10 rounded-xl border border-primary/20">
+                      <input
+                        type="checkbox"
+                        id={`role-${role.value}`}
+                        checked={(formData.userRoles || []).includes(role.value)}
+                        onChange={(e) => {
+                          const currentRoles = formData.userRoles || [];
+                          const newRoles = e.target.checked
+                            ? [...currentRoles, role.value]
+                            : currentRoles.filter(r => r !== role.value);
+                          setFormData({ ...formData, userRoles: newRoles });
+                        }}
+                        className="w-4 h-4 text-primary rounded focus:ring-primary/20"
+                      />
+                      <label htmlFor={`role-${role.value}`} className="text-sm font-medium text-base-content flex items-center space-x-2 cursor-pointer">
+                        <span>{role.label}</span>
+                        <svg className="w-4 h-4 text-secondary" fill="currentColor" viewBox="0 0 24 24">
+                          <path d={role.icon}/>
+                        </svg>
+                      </label>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               <div className="flex space-x-4 pt-4">

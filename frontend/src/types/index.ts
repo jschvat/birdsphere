@@ -1,3 +1,24 @@
+export interface AnimalCategory {
+  id: number;
+  name: string;
+  parent_id?: number;
+  level: number;
+  icon?: string;
+  children?: AnimalCategory[];
+}
+
+export interface UserRating {
+  id: number;
+  rater_id: string;
+  rated_user_id: string;
+  rating: number;
+  comment?: string;
+  transaction_type: string;
+  rater_username: string;
+  rater_first_name: string;
+  created_at: string;
+}
+
 export interface User {
   id: string;
   email: string;
@@ -12,10 +33,21 @@ export interface User {
   locationCountry?: string;
   latitude?: number;
   longitude?: number;
-  isBreeder: boolean;
+  address?: {
+    street?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    postalCode?: string;
+  };
+  userRoles: string[];
+  rating: number;
+  ratingCount: number;
+  animalInterests: AnimalCategory[];
   isVerified: boolean;
   createdAt: string;
   updatedAt: string;
+  recentRatings?: UserRating[];
 }
 
 export interface LoginCredentials {
@@ -36,7 +68,13 @@ export interface RegisterData {
   locationCountry?: string;
   latitude?: number;
   longitude?: number;
-  isBreeder?: boolean;
+  addressStreet?: string;
+  addressCity?: string;
+  addressState?: string;
+  addressCountry?: string;
+  addressPostalCode?: string;
+  userRoles?: string[];
+  animalInterests?: number[];
 }
 
 export interface ApiError {
