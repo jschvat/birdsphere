@@ -14,7 +14,11 @@
     "format": "prettier --write src/**/*.js",
     "validate": "npm run lint && npm run test",
     "db:seed": "node scripts/seed-database.js",
-    "db:migrate": "node scripts/migrate-database.js",
+    "db:migrate": "node scripts/run-migration.js",
+    "db:migrate:backup": "node scripts/run-migration.js --backup-first",
+    "db:migrate:dry": "node scripts/run-migration.js --dry-run",
+    "db:test": "node scripts/setup-test-db.js",
+    "db:test:clean": "node scripts/setup-test-db.js --clean",
     "docs:build": "swagger-jsdoc -d docs/swagger.json src/routes/*.js",
     "logs:clean": "rm -rf logs/*.log",
     "cache:clear": "node scripts/clear-cache.js"
