@@ -317,6 +317,22 @@ CREATE INDEX IF NOT EXISTS idx_user_ratings_rated_user_id ON user_ratings(rated_
 CREATE INDEX IF NOT EXISTS idx_users_rating ON users(rating);
 CREATE INDEX IF NOT EXISTS idx_users_user_roles ON users USING GIN(user_roles);
 
+-- Location-based search optimization indexes for users
+CREATE INDEX IF NOT EXISTS idx_users_roles_location ON users USING btree (user_roles, latitude, longitude)
+WHERE latitude IS NOT NULL AND longitude IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_users_breeders_location ON users USING btree (latitude, longitude)
+WHERE is_breeder = true AND latitude IS NOT NULL AND longitude IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_users_location_not_null ON users USING btree (latitude, longitude)
+WHERE latitude IS NOT NULL AND longitude IS NOT NULL;
+
+-- Location-based search optimization indexes for listings
+CREATE INDEX IF NOT EXISTS idx_listings_category_location ON listings USING btree (category_id, latitude, longitude)
+WHERE latitude IS NOT NULL AND longitude IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_listings_status_location ON listings USING btree (status, latitude, longitude)
+WHERE latitude IS NOT NULL AND longitude IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_listings_location_not_null ON listings USING btree (latitude, longitude)
+WHERE latitude IS NOT NULL AND longitude IS NOT NULL;
+
 -- =================================================================================
 -- CREATE HIERARCHICAL VIEW
 -- =================================================================================
