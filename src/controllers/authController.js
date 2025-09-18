@@ -161,7 +161,6 @@ const register = async (req, res) => {
       token // Still include in response for backward compatibility
     });
   } catch (error) {
-    console.error('Registration error:', error);
     res.status(500).json({ error: 'Failed to register user' });
   }
 };
@@ -240,7 +239,6 @@ const login = async (req, res) => {
       token // Still include in response for backward compatibility
     });
   } catch (error) {
-    console.error('Login error:', error);
     res.status(500).json({ error: 'Login failed' });
   }
 };
@@ -294,7 +292,6 @@ const getProfile = async (req, res) => {
     
     res.json(response);
   } catch (error) {
-    console.error('Get profile error:', error);
     res.status(500).json({ error: 'Failed to get profile' });
   }
 };
@@ -384,7 +381,6 @@ const updateProfile = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Update profile error:', error);
     res.status(500).json({ error: 'Failed to update profile' });
   }
 };
@@ -411,7 +407,6 @@ const logout = async (req, res) => {
     
     res.json({ message: 'Logged out successfully' });
   } catch (error) {
-    console.error('Logout error:', error);
     res.status(500).json({ error: 'Logout failed' });
   }
 };
@@ -432,7 +427,6 @@ const deleteAccount = async (req, res) => {
     
     res.json({ message: 'Account deleted successfully' });
   } catch (error) {
-    console.error('Delete account error:', error);
     res.status(500).json({ error: 'Failed to delete account' });
   }
 };

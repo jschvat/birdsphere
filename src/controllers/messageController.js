@@ -26,7 +26,6 @@ const getConversations = async (req, res) => {
 
     res.json({ conversations: formattedConversations });
   } catch (error) {
-    console.error('Get conversations error:', error);
     res.status(500).json({ error: 'Failed to get conversations' });
   }
 };
@@ -69,7 +68,6 @@ const getMessages = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Get messages error:', error);
     
     if (error.message === 'Conversation not found or access denied') {
       return res.status(404).json({ error: error.message });
@@ -104,7 +102,6 @@ const sendMessage = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Send message error:', error);
     res.status(500).json({ error: 'Failed to send message' });
   }
 };
@@ -149,7 +146,6 @@ const startConversation = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Start conversation error:', error);
     res.status(500).json({ error: 'Failed to start conversation' });
   }
 };
@@ -162,7 +158,6 @@ const deleteConversation = async (req, res) => {
     
     res.json({ message: 'Conversation deleted successfully' });
   } catch (error) {
-    console.error('Delete conversation error:', error);
     
     if (error.message === 'Conversation not found or access denied') {
       return res.status(404).json({ error: error.message });
@@ -178,7 +173,6 @@ const getUnreadCount = async (req, res) => {
     
     res.json({ unreadCount });
   } catch (error) {
-    console.error('Get unread count error:', error);
     res.status(500).json({ error: 'Failed to get unread count' });
   }
 };

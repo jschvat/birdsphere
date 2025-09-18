@@ -1,4 +1,4 @@
-const db = require('../config/database');
+const { query } = require('../config/database');
 
 class Comment {
   static async create({
@@ -7,27 +7,27 @@ class Comment {
     content,
     parentCommentId = null
   }) {
-    const query = `
+    const sql = `
       INSERT INTO comments (post_id, author_id, content, parent_comment_id)
       VALUES ($1, $2, $3, $4)
       RETURNING *
     `;
 
     const values = [postId, authorId, content, parentCommentId];
-    const result = await db.query(query, values);
+    const result = await query(sql, values);
 
     return result.rows[0];
   }
 
   static async findById(id) {
-    const query = `
+    const sql = `
       SELECT c.*,
              (SELECT COUNT(*) FROM comments WHERE parent_comment_id = c.id) as reply_count
       FROM comments c
       WHERE c.id = $1
     `;
 
-    const result = await db.query(query, [id]);
+    const result = await query(sql, [id]);
     return result.rows[0];
   }
 
@@ -89,7 +89,7 @@ class Comment {
 
     const whereClause = whereConditions.join(' AND ');
 
-    const query = `
+    const sql = `
       SELECT c.*,
              (SELECT COUNT(*) FROM comments WHERE parent_comment_id = c.id) as reply_count
       FROM comments c
@@ -100,7 +100,7 @@ class Comment {
 
     values.push(limit, offset);
 
-    const result = await db.query(query, values);
+    const result = await query(sql, values);
     return result.rows;
   }
 
@@ -126,7 +126,7 @@ class Comment {
         break;
     }
 
-    const query = `
+    const sql = `
       SELECT c.*,
              (SELECT COUNT(*) FROM comments WHERE parent_comment_id = c.id) as reply_count
       FROM comments c
@@ -135,7 +135,7 @@ class Comment {
       LIMIT $2 OFFSET $3
     `;
 
-    const result = await db.query(query, [parentCommentId, limit, offset]);
+    const result = await query(sql, [parentCommentId, limit, offset]);
     return result.rows;
   }
 
@@ -178,8 +178,8 @@ class Comment {
     }
 
     const whereClause = whereConditions.join(' AND ');
-    const query = `SELECT COUNT(*) as count FROM comments WHERE ${whereClause}`;
-    const result = await db.query(query, values);
+    const sql = `SELECT COUNT(*) as count FROM comments WHERE ${whereClause}`;
+    const result = await query(sql, values);
 
     return parseInt(result.rows[0].count);
   }
@@ -207,14 +207,14 @@ class Comment {
     setClause.push('is_edited = TRUE');
 
     values.push(id);
-    const query = `
+    const sql = `
       UPDATE comments
       SET ${setClause.join(', ')}
       WHERE id = $${paramCount}
       RETURNING *
     `;
 
-    const result = await db.query(query, values);
+    const result = await query(sql, values);
 
     if (result.rowCount === 0) {
       throw new Error('Comment not found');
@@ -224,33 +224,33 @@ class Comment {
   }
 
   static async saveEditHistory(commentId, originalContent) {
-    const query = `
+    const sql = `
       INSERT INTO comment_edit_history (comment_id, content)
       VALUES ($1, $2)
       RETURNING *
     `;
 
-    const result = await db.query(query, [commentId, originalContent]);
+    const result = await query(sql, [commentId, originalContent]);
     return result.rows[0];
   }
 
   static async getEditHistory(commentId) {
-    const query = `
+    const sql = `
       SELECT * FROM comment_edit_history
       WHERE comment_id = $1
       ORDER BY edited_at DESC
     `;
 
-    const result = await db.query(query, [commentId]);
+    const result = await query(sql, [commentId]);
     return result.rows;
   }
 
   static async delete(id) {
     // First delete all replies (cascade should handle this, but being explicit)
-    await db.query('DELETE FROM comments WHERE parent_comment_id = $1', [id]);
+    await query('DELETE FROM comments WHERE parent_comment_id = $1', [id]);
 
-    const query = 'DELETE FROM comments WHERE id = $1 RETURNING *';
-    const result = await db.query(query, [id]);
+    const sql = 'DELETE FROM comments WHERE id = $1 RETURNING *';
+    const result = await query(sql, [id]);
 
     if (result.rowCount === 0) {
       throw new Error('Comment not found');
@@ -280,7 +280,7 @@ class Comment {
         break;
     }
 
-    const query = `
+    const sql = `
       SELECT c.*,
              p.content as post_content,
              p.author_id as post_author_id,
@@ -292,19 +292,19 @@ class Comment {
       LIMIT $2 OFFSET $3
     `;
 
-    const result = await db.query(query, [authorId, limit, offset]);
+    const result = await query(sql, [authorId, limit, offset]);
     return result.rows;
   }
 
   static async markAsHidden(id, isHidden = true) {
-    const query = `
+    const sql = `
       UPDATE comments
       SET is_hidden = $1
       WHERE id = $2
       RETURNING *
     `;
 
-    const result = await db.query(query, [isHidden, id]);
+    const result = await query(sql, [isHidden, id]);
 
     if (result.rowCount === 0) {
       throw new Error('Comment not found');

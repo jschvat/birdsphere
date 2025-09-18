@@ -66,7 +66,6 @@ exports.createPost = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error creating post:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to create post',
@@ -155,7 +154,6 @@ exports.getTimeline = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching timeline:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch timeline',
@@ -201,7 +199,6 @@ exports.getPost = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching post:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch post',
@@ -256,7 +253,6 @@ exports.updatePost = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error updating post:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to update post',
@@ -296,7 +292,6 @@ exports.deletePost = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error deleting post:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to delete post',
@@ -396,7 +391,6 @@ exports.searchPosts = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error searching posts:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to search posts',
@@ -456,7 +450,6 @@ exports.getTrendingPosts = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching trending posts:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch trending posts',
@@ -553,7 +546,6 @@ exports.getUserPosts = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching user posts:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch user posts',
@@ -594,7 +586,6 @@ exports.reactToPost = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error reacting to post:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to react to post',
@@ -618,7 +609,6 @@ exports.removePostReaction = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error removing post reaction:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to remove reaction',
@@ -642,7 +632,6 @@ exports.getPostReactions = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching post reactions:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch post reactions',

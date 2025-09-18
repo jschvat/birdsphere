@@ -41,7 +41,6 @@ const uploadMediaForPost = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error uploading media:', error);
 
     // Clean up any uploaded files on error
     if (req.files) {
@@ -74,7 +73,6 @@ const getFileInfo = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error getting file info:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to get file information',
@@ -103,7 +101,6 @@ const deleteUploadedFile = async (req, res) => {
     }
 
   } catch (error) {
-    console.error('Error deleting file:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to delete file',

@@ -84,7 +84,6 @@ const getNearbyListings = async (req, res) => {
       count: formattedListings.length
     });
   } catch (error) {
-    console.error('Get nearby listings error:', error);
     res.status(500).json({ error: 'Failed to get nearby listings' });
   }
 };
@@ -136,7 +135,6 @@ const getNearbyBreeders = async (req, res) => {
       count: formattedBreeders.length
     });
   } catch (error) {
-    console.error('Get nearby breeders error:', error);
     res.status(500).json({ error: 'Failed to get nearby breeders' });
   }
 };
@@ -175,7 +173,6 @@ const calculateDistanceBetweenPoints = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Calculate distance error:', error);
     res.status(500).json({ error: 'Failed to calculate distance' });
   }
 };
@@ -207,7 +204,6 @@ const searchLocations = async (req, res) => {
       count: filteredLocations.length
     });
   } catch (error) {
-    console.error('Search locations error:', error);
     res.status(500).json({ error: 'Failed to search locations' });
   }
 };
@@ -261,7 +257,6 @@ const geocodeAddress = async (req, res) => {
       status: 'OK'
     });
   } catch (error) {
-    console.error('Geocode address error:', error);
     res.status(500).json({ error: 'Failed to geocode address' });
   }
 };
@@ -296,7 +291,6 @@ const reverseGeocode = async (req, res) => {
       status: 'OK'
     });
   } catch (error) {
-    console.error('Reverse geocode error:', error);
     res.status(500).json({ error: 'Failed to reverse geocode coordinates' });
   }
 };

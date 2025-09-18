@@ -54,7 +54,6 @@ class TimelineService {
         .slice(offset, offset + limit);
 
     } catch (error) {
-      console.error('Error generating timeline:', error);
       throw error;
     }
   }

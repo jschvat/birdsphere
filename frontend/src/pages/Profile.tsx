@@ -42,6 +42,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { uploadService } from '../services/uploadService';
 import { animalService } from '../services/animalService';
+import { authService } from '../services/authService';
 import { User, AnimalCategory } from '../types';
 import TreeView from '../components/TreeView';
 
@@ -271,6 +272,15 @@ const Profile: React.FC = () => {
       // Send profile update request to server
       await updateProfile(dataToSend);
 
+      // Clear authService cache to ensure fresh data after profile update
+      authService.clearCache();
+
+      // Allow server processing time
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      // Refresh user data to get updated profile including animal interests
+      await refreshUser();
+
       // Optimistic UI update: switch back to view mode
       setIsEditing(false);
 
@@ -390,7 +400,10 @@ const Profile: React.FC = () => {
       
       // Allow server processing time (prevents race conditions)
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
+      // Clear authService cache to ensure fresh data
+      authService.clearCache();
+
       // Refresh user data to get updated profile image URL
       await refreshUser();
       
@@ -453,9 +466,9 @@ const Profile: React.FC = () => {
     // Priority 2: Show user's saved profile image from database
     if (user?.profileImage && user.profileImage.trim()) {
       // Handle different URL formats
-      const avatarUrl = user.profileImage.startsWith('http') 
+      const avatarUrl = user.profileImage.startsWith('http')
         ? user.profileImage  // External URL - use as-is
-        : `http://localhost:3000${user.profileImage}`; // Relative URL - make absolute
+        : `http://localhost:3015${user.profileImage}`; // Relative URL - make absolute
       
       return avatarUrl;
     }
@@ -609,7 +622,10 @@ const Profile: React.FC = () => {
                   </div>
                 </button>
                 <button
-                  onClick={refreshUser}
+                  onClick={() => {
+                    authService.clearCache();
+                    refreshUser();
+                  }}
                   className="btn bg-info/20 hover:bg-info/30 border border-info/30 text-info hover:text-info font-semibold rounded-lg transition-all duration-200 transform hover:-translate-y-0.5 backdrop-blur-sm"
                 >
                   <div className="flex items-center space-x-2">

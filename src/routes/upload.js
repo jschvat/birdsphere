@@ -57,7 +57,6 @@ router.get('/avatar', authenticateToken, async (req, res) => {
       avatarUrl: user.profile_image || null
     });
   } catch (error) {
-    console.error('Get avatar error:', error);
     res.status(500).json({ error: 'Failed to get avatar' });
   }
 });
@@ -93,6 +92,11 @@ router.post('/avatar', authenticateToken, (req, res) => {
       // Update user's profile_image in database with new random UUID filename
       const avatarUrl = `/uploads/avatars/${req.file.filename}`;
       const updatedUser = await User.updateProfileImage(req.user.id, avatarUrl);
+
+      // Clear user cache after avatar update
+      const { cache, cacheKeys } = require('../middleware/cache');
+      await cache.del(cacheKeys.user(updatedUser.username));
+      await cache.del(cacheKeys.user(updatedUser.id));
       
 
       res.json({
@@ -104,7 +108,6 @@ router.post('/avatar', authenticateToken, (req, res) => {
         }
       });
     } catch (error) {
-      console.error('Avatar upload error:', error);
       
       // Clean up uploaded file on error
       if (req.file && req.file.path && fs.existsSync(req.file.path)) {

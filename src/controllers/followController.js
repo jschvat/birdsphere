@@ -56,7 +56,6 @@ exports.followUser = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error following user:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to follow user',
@@ -90,7 +89,6 @@ exports.unfollowUser = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error unfollowing user:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to unfollow user',
@@ -144,7 +142,6 @@ exports.getFollowers = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching followers:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch followers',
@@ -198,7 +195,6 @@ exports.getFollowing = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching following:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch following',
@@ -239,7 +235,6 @@ exports.getFollowStats = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching follow stats:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch follow stats',
@@ -294,7 +289,6 @@ exports.getSuggestedUsers = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching suggested users:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch suggested users',
@@ -340,7 +334,6 @@ exports.updateFollowPreferences = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error updating follow preferences:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to update follow preferences',
@@ -370,7 +363,6 @@ exports.checkFollowStatus = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error checking follow status:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to check follow status',

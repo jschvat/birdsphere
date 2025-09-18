@@ -88,10 +88,19 @@ export const authService = {
   async updateProfile(userData: Partial<User>): Promise<User> {
     const response = await api.put('/auth/profile', userData);
     const updatedUser = response.data.user;
-    
+
     authCache = null;
-    
+
     return updatedUser;
+  },
+
+  /**
+   * Force Cache Clear Method
+   */
+  clearCache(): void {
+    authCache = null;
+    authCheckPromise = null;
+    isCheckingAuth = false;
   },
 
   /**

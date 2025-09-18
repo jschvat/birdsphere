@@ -1,4 +1,4 @@
-const db = require('../config/database');
+const { query } = require('../config/database');
 
 class Reaction {
   static async create({
@@ -18,7 +18,7 @@ class Reaction {
       throw new Error('Invalid reaction type');
     }
 
-    const query = `
+    const sql = `
       INSERT INTO reactions (user_id, target_id, target_type, reaction_type)
       VALUES ($1, $2, $3, $4)
       ON CONFLICT (user_id, target_id, target_type)
@@ -27,14 +27,14 @@ class Reaction {
     `;
 
     const values = [userId, targetId, targetType, reactionType];
-    const result = await db.query(query, values);
+    const result = await query(sql, values);
 
     return result.rows[0];
   }
 
   static async findById(id) {
-    const query = 'SELECT * FROM reactions WHERE id = $1';
-    const result = await db.query(query, [id]);
+    const sql = 'SELECT * FROM reactions WHERE id = $1';
+    const result = await query(sql, [id]);
     return result.rows[0];
   }
 
@@ -74,7 +74,7 @@ class Reaction {
 
     const whereClause = whereConditions.join(' AND ');
 
-    const query = `
+    const sql = `
       SELECT * FROM reactions
       WHERE ${whereClause}
       ORDER BY ${orderBy}
@@ -83,7 +83,7 @@ class Reaction {
 
     values.push(limit, offset);
 
-    const result = await db.query(query, values);
+    const result = await query(sql, values);
     return result.rows;
   }
 
@@ -123,7 +123,7 @@ class Reaction {
 
     const whereClause = whereConditions.join(' AND ');
 
-    const query = `
+    const sql = `
       SELECT * FROM reactions
       WHERE ${whereClause}
       ORDER BY ${orderBy}
@@ -132,22 +132,22 @@ class Reaction {
 
     values.push(limit, offset);
 
-    const result = await db.query(query, values);
+    const result = await query(sql, values);
     return result.rows;
   }
 
   static async getUserReaction(userId, targetId, targetType) {
-    const query = `
+    const sql = `
       SELECT * FROM reactions
       WHERE user_id = $1 AND target_id = $2 AND target_type = $3
     `;
 
-    const result = await db.query(query, [userId, targetId, targetType]);
+    const result = await query(sql, [userId, targetId, targetType]);
     return result.rows[0];
   }
 
   static async getReactionSummary(targetId, targetType) {
-    const query = `
+    const sql = `
       SELECT reaction_type, COUNT(*) as count
       FROM reactions
       WHERE target_id = $1 AND target_type = $2
@@ -155,7 +155,7 @@ class Reaction {
       ORDER BY count DESC, reaction_type
     `;
 
-    const result = await db.query(query, [targetId, targetType]);
+    const result = await query(sql, [targetId, targetType]);
 
     const summary = {
       reactions: result.rows,
@@ -166,13 +166,13 @@ class Reaction {
   }
 
   static async remove(userId, targetId, targetType) {
-    const query = `
+    const sql = `
       DELETE FROM reactions
       WHERE user_id = $1 AND target_id = $2 AND target_type = $3
       RETURNING *
     `;
 
-    const result = await db.query(query, [userId, targetId, targetType]);
+    const result = await query(sql, [userId, targetId, targetType]);
     return result.rows[0];
   }
 
@@ -210,14 +210,14 @@ class Reaction {
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
-    const query = `SELECT COUNT(*) as count FROM reactions ${whereClause}`;
-    const result = await db.query(query, values);
+    const sql = `SELECT COUNT(*) as count FROM reactions ${whereClause}`;
+    const result = await query(sql, values);
 
     return parseInt(result.rows[0].count);
   }
 
   static async findRecentByUser(userId, limit = 10) {
-    const query = `
+    const sql = `
       SELECT r.*,
              CASE
                WHEN r.target_type = 'post' THEN p.content
@@ -235,7 +235,7 @@ class Reaction {
       LIMIT $2
     `;
 
-    const result = await db.query(query, [userId, limit]);
+    const result = await query(sql, [userId, limit]);
     return result.rows;
   }
 
@@ -267,7 +267,7 @@ class Reaction {
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
-    const query = `
+    const sql = `
       SELECT r.target_id, r.target_type, COUNT(*) as reaction_count,
              CASE
                WHEN r.target_type = 'post' THEN p.content
@@ -288,7 +288,7 @@ class Reaction {
 
     values.push(limit);
 
-    const result = await db.query(query, values);
+    const result = await query(sql, values);
     return result.rows;
   }
 
@@ -313,7 +313,7 @@ class Reaction {
 
     const whereClause = whereConditions.join(' AND ');
 
-    const query = `
+    const sql = `
       SELECT reaction_type, target_type, COUNT(*) as count
       FROM reactions
       WHERE ${whereClause}
@@ -321,7 +321,7 @@ class Reaction {
       ORDER BY count DESC
     `;
 
-    const result = await db.query(query, values);
+    const result = await query(sql, values);
     return result.rows;
   }
 

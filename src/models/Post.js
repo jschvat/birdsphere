@@ -1,72 +1,43 @@
-const db = require('../config/database');
+const { query } = require('../config/database');
 
 class Post {
   static async create({
     authorId,
     content,
-    postType = 'standard',
-    visibility = 'followers',
-    isPinned = false,
-    locationLat = null,
-    locationLng = null,
-    locationName = null,
-    originalPostId = null,
-    shareComment = null,
-    media = []
+    visibility = 'public',
+    mediaAttachments = [],
+    locationCity = null,
+    locationState = null,
+    locationCountry = null,
+    tags = []
   }) {
-    const query = `
+    const sql = `
       INSERT INTO posts (
-        author_id, content, post_type, visibility, is_pinned,
-        location_lat, location_lng, location_name,
-        original_post_id, share_comment
+        author_id, content, visibility, media_attachments,
+        location_city, location_state, location_country, tags
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING *
     `;
 
     const values = [
-      authorId, content, postType, visibility, isPinned,
-      locationLat, locationLng, locationName,
-      originalPostId, shareComment
+      authorId, content, visibility, JSON.stringify(mediaAttachments),
+      locationCity, locationState, locationCountry, tags
     ];
 
-    const result = await db.query(query, values);
-    const post = result.rows[0];
-
-    // Add media if provided
-    if (media && media.length > 0) {
-      await this.addMedia(post.id, media);
-      post.media = media;
-    }
-
-    return post;
+    const result = await query(sql, values);
+    return result.rows[0];
   }
 
   static async findById(id) {
-    const query = `
-      SELECT p.*,
-             COALESCE(json_agg(
-               json_build_object(
-                 'id', pm.id,
-                 'fileType', pm.file_type,
-                 'fileUrl', pm.file_url,
-                 'fileName', pm.file_name,
-                 'fileSize', pm.file_size,
-                 'mimeType', pm.mime_type,
-                 'width', pm.width,
-                 'height', pm.height,
-                 'duration', pm.duration,
-                 'thumbnailUrl', pm.thumbnail_url,
-                 'displayOrder', pm.display_order
-               ) ORDER BY pm.display_order
-             ) FILTER (WHERE pm.id IS NOT NULL), '[]'::json) as media
+    const sql = `
+      SELECT p.*, u.username, u.first_name, u.last_name, u.profile_image
       FROM posts p
-      LEFT JOIN post_media pm ON p.id = pm.post_id
-      WHERE p.id = $1
-      GROUP BY p.id
+      JOIN users u ON p.author_id = u.id
+      WHERE p.id = $1 AND p.is_active = true
     `;
 
-    const result = await db.query(query, [id]);
+    const result = await query(sql, [id]);
     return result.rows[0];
   }
 
@@ -165,7 +136,7 @@ class Post {
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
-    const query = `
+    const sql = `
       SELECT p.*,
              COALESCE(json_agg(
                json_build_object(
@@ -192,7 +163,7 @@ class Post {
 
     values.push(limit, offset);
 
-    const result = await db.query(query, values);
+    const result = await query(sql, values);
     return result.rows;
   }
 
@@ -264,8 +235,8 @@ class Post {
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
-    const query = `SELECT COUNT(*) as count FROM posts ${whereClause}`;
-    const result = await db.query(query, values);
+    const sql = `SELECT COUNT(*) as count FROM posts ${whereClause}`;
+    const result = await query(sql, values);
 
     return parseInt(result.rows[0].count);
   }
@@ -291,14 +262,14 @@ class Post {
     }
 
     values.push(id);
-    const query = `
+    const sql = `
       UPDATE posts
       SET ${setClause.join(', ')}
       WHERE id = $${paramCount}
       RETURNING *
     `;
 
-    const result = await db.query(query, values);
+    const result = await query(sql, values);
 
     if (result.rowCount === 0) {
       throw new Error('Post not found');
@@ -309,10 +280,10 @@ class Post {
 
   static async delete(id) {
     // Delete media first (cascade should handle this, but being explicit)
-    await db.query('DELETE FROM post_media WHERE post_id = $1', [id]);
+    await query('DELETE FROM post_media WHERE post_id = $1', [id]);
 
-    const query = 'DELETE FROM posts WHERE id = $1 RETURNING *';
-    const result = await db.query(query, [id]);
+    const sql = 'DELETE FROM posts WHERE id = $1 RETURNING *';
+    const result = await query(sql, [id]);
 
     if (result.rowCount === 0) {
       throw new Error('Post not found');
@@ -345,13 +316,13 @@ class Post {
       );
     });
 
-    const query = `
+    const sql = `
       INSERT INTO post_media (post_id, file_type, file_url, file_name, file_size, mime_type, width, height, duration, thumbnail_url)
       VALUES ${placeholders.join(', ')}
       RETURNING *
     `;
 
-    const result = await db.query(query, values);
+    const result = await query(sql, values);
     return result.rows;
   }
 
@@ -377,19 +348,19 @@ class Post {
     setClause.push('last_engagement = CURRENT_TIMESTAMP');
     values.push(id);
 
-    const query = `
+    const sql = `
       UPDATE posts
       SET ${setClause.join(', ')}
       WHERE id = $${paramCount}
       RETURNING *
     `;
 
-    const result = await db.query(query, values);
+    const result = await query(sql, values);
     return result.rows[0];
   }
 
   static async incrementViews(id) {
-    const query = `
+    const sql = `
       UPDATE posts
       SET view_count = view_count + 1,
           last_engagement = CURRENT_TIMESTAMP
@@ -397,46 +368,105 @@ class Post {
       RETURNING view_count
     `;
 
-    const result = await db.query(query, [id]);
+    const result = await query(sql, [id]);
+    return result.rows[0];
+  }
+
+  static async addReaction(postId, userId, reactionType) {
+    // First, check if reaction already exists
+    const existingSQL = `
+      SELECT id FROM reactions
+      WHERE user_id = $1 AND target_id = $2 AND target_type = 'post'
+    `;
+    const existing = await query(existingSQL, [userId, postId]);
+
+    if (existing.rows.length > 0) {
+      // Update existing reaction
+      const updateSQL = `
+        UPDATE reactions
+        SET reaction_type = $1
+        WHERE user_id = $2 AND target_id = $3 AND target_type = 'post'
+        RETURNING *
+      `;
+      const result = await query(updateSQL, [reactionType, userId, postId]);
+      await this.updateReactionCounts(postId);
+      return result.rows[0];
+    } else {
+      // Create new reaction
+      const insertSQL = `
+        INSERT INTO reactions (user_id, target_id, target_type, reaction_type)
+        VALUES ($1, $2, 'post', $3)
+        RETURNING *
+      `;
+      const result = await query(insertSQL, [userId, postId, reactionType]);
+      await this.updateReactionCounts(postId);
+      return result.rows[0];
+    }
+  }
+
+  static async removeReaction(postId, userId) {
+    const sql = `
+      DELETE FROM reactions
+      WHERE user_id = $1 AND target_id = $2 AND target_type = 'post'
+      RETURNING *
+    `;
+    const result = await query(sql, [userId, postId]);
+    await this.updateReactionCounts(postId);
+    return result.rows[0];
+  }
+
+  static async updateReactionCounts(postId) {
+    const sql = `
+      UPDATE posts
+      SET reaction_counts = (
+        SELECT COALESCE(json_object_agg(reaction_type, count), '{}')
+        FROM (
+          SELECT reaction_type, COUNT(*) as count
+          FROM reactions
+          WHERE target_id = $1 AND target_type = 'post'
+          GROUP BY reaction_type
+        ) reaction_summary
+      )
+      WHERE id = $1
+    `;
+    await query(sql, [postId]);
+  }
+
+  static async incrementShareCount(postId) {
+    const sql = `
+      UPDATE posts
+      SET share_count = share_count + 1
+      WHERE id = $1
+      RETURNING share_count
+    `;
+    const result = await query(sql, [postId]);
+    return result.rows[0];
+  }
+
+  static async incrementCommentCount(postId) {
+    const sql = `
+      UPDATE posts
+      SET comment_count = comment_count + 1
+      WHERE id = $1
+      RETURNING comment_count
+    `;
+    const result = await query(sql, [postId]);
     return result.rows[0];
   }
 
   static async findTrending(options = {}) {
-    const {
-      timeframe = 24,  // hours
-      limit = 10,
-      offset = 0
-    } = options;
+    const { limit = 10, offset = 0 } = options;
 
-    const cutoffTime = new Date();
-    cutoffTime.setHours(cutoffTime.getHours() - timeframe);
-
-    const query = `
-      SELECT p.*,
-             COALESCE(json_agg(
-               json_build_object(
-                 'id', pm.id,
-                 'fileType', pm.file_type,
-                 'fileUrl', pm.file_url,
-                 'fileName', pm.file_name,
-                 'fileSize', pm.file_size,
-                 'mimeType', pm.mime_type,
-                 'width', pm.width,
-                 'height', pm.height,
-                 'duration', pm.duration,
-                 'thumbnailUrl', pm.thumbnail_url,
-                 'displayOrder', pm.display_order
-               ) ORDER BY pm.display_order
-             ) FILTER (WHERE pm.id IS NOT NULL), '[]'::json) as media
+    const sql = `
+      SELECT p.*, u.username, u.first_name, u.last_name, u.profile_image
       FROM posts p
-      LEFT JOIN post_media pm ON p.id = pm.post_id
-      WHERE p.created_at >= $1 AND p.visibility = 'public'
-      GROUP BY p.id
-      ORDER BY p.engagement_score DESC, p.reaction_count DESC, p.created_at DESC
-      LIMIT $2 OFFSET $3
+      JOIN users u ON p.author_id = u.id
+      WHERE p.visibility = 'public' AND p.is_active = true
+      ORDER BY p.share_count DESC, p.created_at DESC
+      LIMIT $1 OFFSET $2
     `;
 
-    const result = await db.query(query, [cutoffTime, limit, offset]);
+    const result = await query(sql, [limit, offset]);
     return result.rows;
   }
 }

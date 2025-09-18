@@ -66,7 +66,6 @@ const createListing = async (req, res) => {
       listing: formatListingResponse(listing)
     });
   } catch (error) {
-    console.error('Create listing error:', error);
     res.status(500).json({ error: 'Failed to create listing' });
   }
 };
@@ -106,12 +105,10 @@ const getListings = async (req, res) => {
     try {
       await cache.set(cacheKey, response, 900);
     } catch (cacheError) {
-      console.error('Cache error:', cacheError.message);
     }
 
     res.json(response);
   } catch (error) {
-    console.error('Get listings error:', error);
     res.status(500).json({ error: 'Failed to get listings' });
   }
 };
@@ -135,7 +132,6 @@ const getListing = async (req, res) => {
       listing: formatDetailedListingResponse(listing)
     });
   } catch (error) {
-    console.error('Get listing error:', error);
     res.status(500).json({ error: 'Failed to get listing' });
   }
 };
@@ -169,7 +165,6 @@ const getUserListings = async (req, res) => {
 
     res.json(response);
   } catch (error) {
-    console.error('Get user listings error:', error);
     res.status(500).json({ error: 'Failed to get user listings' });
   }
 };
@@ -198,7 +193,6 @@ const updateListing = async (req, res) => {
       listing: formatListingResponse(listing)
     });
   } catch (error) {
-    console.error('Update listing error:', error);
     res.status(500).json({ error: 'Failed to update listing' });
   }
 };
@@ -235,7 +229,6 @@ const deleteListing = async (req, res) => {
 
     res.json({ message: 'Listing deleted successfully' });
   } catch (error) {
-    console.error('Delete listing error:', error);
     res.status(500).json({ error: 'Failed to delete listing' });
   }
 };
@@ -276,7 +269,6 @@ const getCategories = async (req, res) => {
     
     res.json(response);
   } catch (error) {
-    console.error('Get categories error:', error);
     res.status(500).json({ error: 'Failed to get categories' });
   }
 };
@@ -324,7 +316,6 @@ const uploadMedia = async (req, res) => {
       media: uploadedMedia
     });
   } catch (error) {
-    console.error('Upload media error:', error);
     res.status(500).json({ error: 'Failed to upload media' });
   }
 };
@@ -354,7 +345,6 @@ const deleteMedia = async (req, res) => {
 
     res.json({ message: 'Media deleted successfully' });
   } catch (error) {
-    console.error('Delete media error:', error);
     res.status(500).json({ error: 'Failed to delete media' });
   }
 };

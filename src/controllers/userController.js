@@ -74,7 +74,6 @@ const getUserProfile = async (req, res) => {
 
     res.json(response);
   } catch (error) {
-    console.error('Get user profile error:', error);
     res.status(500).json({ error: 'Failed to get user profile' });
   }
 };
@@ -134,7 +133,6 @@ const findNearbyUsers = async (req, res) => {
 
     res.json(response);
   } catch (error) {
-    console.error('Find nearby users error:', error);
     res.status(500).json({ error: 'Failed to find nearby users' });
   }
 };
@@ -176,7 +174,6 @@ const getAllUsers = async (req, res) => {
 
     res.json(response);
   } catch (error) {
-    console.error('Get all users error:', error);
     res.status(500).json({ error: 'Failed to get users' });
   }
 };
@@ -224,7 +221,6 @@ const getCurrentUserProfile = async (req, res) => {
 
     res.json(response);
   } catch (error) {
-    console.error('Get current user profile error:', error);
     res.status(500).json({ error: 'Failed to get profile' });
   }
 };
@@ -259,6 +255,10 @@ const updateProfile = async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
+    // Clear user cache after update
+    await cache.del(cacheKeys.user(updatedUser.username));
+    await cache.del(cacheKeys.user(updatedUser.id));
+
     res.json({
       message: 'Profile updated successfully',
       user: {
@@ -288,7 +288,6 @@ const updateProfile = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Update profile error:', error);
     res.status(500).json({ error: 'Failed to update profile' });
   }
 };
@@ -299,7 +298,6 @@ const getAnimalCategories = async (req, res) => {
     const categories = await User.getAnimalCategoriesTree();
     res.json({ categories });
   } catch (error) {
-    console.error('Get animal categories error:', error);
     res.status(500).json({ error: 'Failed to get animal categories' });
   }
 };
@@ -325,7 +323,6 @@ const addUserRating = async (req, res) => {
       rating: ratingRecord
     });
   } catch (error) {
-    console.error('Add user rating error:', error);
     res.status(500).json({ error: 'Failed to add rating' });
   }
 };
@@ -339,7 +336,6 @@ const getUserRatings = async (req, res) => {
 
     res.json({ ratings });
   } catch (error) {
-    console.error('Get user ratings error:', error);
     res.status(500).json({ error: 'Failed to get user ratings' });
   }
 };

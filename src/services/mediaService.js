@@ -159,7 +159,6 @@ class MediaService {
       }
       return false;
     } catch (error) {
-      console.error('Error deleting file:', error);
       return false;
     }
   }
@@ -180,7 +179,6 @@ class MediaService {
       }
       return file;
     } catch (error) {
-      console.error('Error moving file:', error);
       return file;
     }
   }

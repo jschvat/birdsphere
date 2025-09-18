@@ -68,7 +68,6 @@ exports.createComment = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error creating comment:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to create comment',
@@ -191,7 +190,6 @@ exports.getPostComments = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching comments:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch comments',
@@ -245,7 +243,6 @@ exports.getCommentReplies = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching comment replies:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch comment replies',
@@ -305,7 +302,6 @@ exports.updateComment = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error updating comment:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to update comment',
@@ -345,7 +341,6 @@ exports.deleteComment = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error deleting comment:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to delete comment',
@@ -386,7 +381,6 @@ exports.reactToComment = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error reacting to comment:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to react to comment',
@@ -410,7 +404,6 @@ exports.removeCommentReaction = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error removing comment reaction:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to remove reaction',
@@ -434,7 +427,6 @@ exports.getCommentReactions = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching comment reactions:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch comment reactions',

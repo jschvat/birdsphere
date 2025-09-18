@@ -40,7 +40,7 @@ const reactionValidation = [
 // Timeline and discovery routes
 router.get('/timeline', authenticateToken, postController.getTimeline);
 router.get('/trending', postController.getTrendingPosts);
-router.get('/discovery', authenticateToken, postController.getDiscoveryPosts);
+// router.get('/discovery', authenticateToken, postController.getDiscoveryPosts);
 router.get('/search', postController.searchPosts);
 
 // Post CRUD routes - includes media upload support
@@ -58,9 +58,9 @@ router.delete('/:id', authenticateToken, postController.deletePost);
 
 // Post interaction routes
 router.post('/:id/react', authenticateToken, reactionValidation, postController.reactToPost);
-router.delete('/:id/react', authenticateToken, postController.removeReaction);
+router.delete('/:id/react', authenticateToken, postController.removePostReaction);
 router.get('/:id/reactions', postController.getPostReactions);
-router.post('/:id/share', authenticateToken, postController.sharePost);
+// router.post('/:id/share', authenticateToken, postController.sharePost);
 
 // User posts
 router.get('/user/:userId', postController.getUserPosts);

@@ -33,7 +33,6 @@ const createRoom = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Create room error:', error);
     res.status(500).json({ error: 'Failed to create room' });
   }
 };
@@ -85,7 +84,6 @@ const getRooms = async (req, res) => {
 
     res.json(response);
   } catch (error) {
-    console.error('Get rooms error:', error);
     res.status(500).json({ error: 'Failed to get rooms' });
   }
 };
@@ -149,7 +147,6 @@ const getRoom = async (req, res) => {
 
     res.json(response);
   } catch (error) {
-    console.error('Get room error:', error);
     res.status(500).json({ error: 'Failed to get room' });
   }
 };
@@ -191,7 +188,6 @@ const getUserRooms = async (req, res) => {
 
     res.json(response);
   } catch (error) {
-    console.error('Get user rooms error:', error);
     res.status(500).json({ error: 'Failed to get user rooms' });
   }
 };
@@ -228,7 +224,6 @@ const joinRoom = async (req, res) => {
 
     res.json({ message: 'Successfully joined room' });
   } catch (error) {
-    console.error('Join room error:', error);
     res.status(500).json({ error: 'Failed to join room' });
   }
 };
@@ -252,7 +247,6 @@ const leaveRoom = async (req, res) => {
 
     res.json({ message: 'Successfully left room' });
   } catch (error) {
-    console.error('Leave room error:', error);
     res.status(500).json({ error: 'Failed to leave room' });
   }
 };
@@ -307,7 +301,6 @@ const getRoomMessages = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Get room messages error:', error);
     res.status(500).json({ error: 'Failed to get room messages' });
   }
 };
@@ -352,7 +345,6 @@ const searchMessages = async (req, res) => {
       count: formattedMessages.length
     });
   } catch (error) {
-    console.error('Search messages error:', error);
     res.status(500).json({ error: 'Failed to search messages' });
   }
 };
@@ -391,7 +383,6 @@ const updateRoom = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Update room error:', error);
     res.status(500).json({ error: 'Failed to update room' });
   }
 };
@@ -421,7 +412,6 @@ const deleteRoom = async (req, res) => {
 
     res.json({ message: 'Room deleted successfully' });
   } catch (error) {
-    console.error('Delete room error:', error);
     res.status(500).json({ error: 'Failed to delete room' });
   }
 };
