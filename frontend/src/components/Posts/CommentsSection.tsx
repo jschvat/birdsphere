@@ -78,7 +78,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ postId, comments }) =
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               placeholder="Write a comment..."
-              className="w-full resize-none border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full resize-none border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               rows={1}
               maxLength={1000}
               onInput={(e) => {
@@ -287,7 +287,7 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, postId, isReply = fa
               <textarea
                 value={editContent}
                 onChange={(e) => setEditContent(e.target.value)}
-                className="w-full resize-none border border-gray-300 rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full resize-none border border-gray-300 rounded p-2 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 rows={2}
                 maxLength={1000}
               />
@@ -357,7 +357,7 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, postId, isReply = fa
                 value={replyContent}
                 onChange={(e) => setReplyContent(e.target.value)}
                 placeholder={`Replying to ${comment.author.firstName}...`}
-                className="w-full resize-none border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full resize-none border border-gray-300 rounded px-2 py-1 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 rows={1}
                 maxLength={1000}
               />
