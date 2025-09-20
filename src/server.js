@@ -46,22 +46,50 @@ const server = createServer(app);
 const io = new Server(server, {
   cors: {
     // Allow different origins based on environment
-    origin: process.env.NODE_ENV === 'production' 
-      ? ['https://birdsphere.com'] 
-      : [
-          'http://localhost:3000', 
-          'http://localhost:3001', 
-          'http://localhost:3002',
-          'http://127.0.0.1:3000',
-          'http://127.0.0.1:3001', 
-          'http://127.0.0.1:3002'
-        ],
+    origin: generateAllowedOrigins(),
     credentials: true // Allow cookies and authentication headers
   }
 });
 
 // Server configuration
 const PORT = process.env.PORT || 3000;
+
+/**
+ * Generate CORS allowed origins based on environment variables
+ *
+ * Supports flexible frontend ports through environment variables:
+ * - FRONTEND_PORTS: Comma-separated list of ports (e.g., "3000,3007,3001")
+ * - FRONTEND_HOST: Host for frontend (defaults to localhost)
+ *
+ * Example usage:
+ * - FRONTEND_PORTS=3007,3010 FRONTEND_HOST=localhost
+ * - FRONTEND_PORTS=3000,3001,3002 (uses default localhost)
+ */
+const generateAllowedOrigins = () => {
+  if (process.env.NODE_ENV === 'production') {
+    return ['https://birdsphere.com'];
+  }
+
+  // Get frontend configuration from environment
+  const frontendHost = process.env.FRONTEND_HOST || 'localhost';
+  const defaultPorts = ['3000', '3001', '3002', '3007'];
+  const frontendPorts = process.env.FRONTEND_PORTS
+    ? process.env.FRONTEND_PORTS.split(',').map(port => port.trim())
+    : defaultPorts;
+
+  // Generate origins for both localhost and 127.0.0.1
+  const origins = [];
+
+  frontendPorts.forEach(port => {
+    origins.push(`http://${frontendHost}:${port}`);
+    // Also add 127.0.0.1 variant if using localhost
+    if (frontendHost === 'localhost') {
+      origins.push(`http://127.0.0.1:${port}`);
+    }
+  });
+
+  return origins;
+};
 
 // Rate limiting configuration
 // Prevents abuse by limiting requests per IP address
@@ -83,7 +111,7 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "http://localhost:3000", "http://localhost:3002"],
+      imgSrc: ["'self'", "data:", ...generateAllowedOrigins()],
       styleSrc: ["'self'", "'unsafe-inline'", "https:"],
       scriptSrc: ["'self'"],
     },
@@ -102,18 +130,7 @@ app.use(limiter);
 // CORS (Cross-Origin Resource Sharing) configuration
 // Allows requests from specified origins with credentials
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://birdsphere.com'] 
-    : [
-        'http://localhost:3000', 
-        'http://localhost:3001', 
-        'http://localhost:3002',
-        'http://localhost:3003',
-        'http://127.0.0.1:3000',
-        'http://127.0.0.1:3001', 
-        'http://127.0.0.1:3002',
-        'http://127.0.0.1:3003'
-      ],
+  origin: generateAllowedOrigins(),
   credentials: true, // Allow cookies and auth headers
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-fingerprint', 'Accept', 'Origin'],
@@ -165,25 +182,21 @@ app.use('/api', apiRoutes);
 // Serve uploaded files (images, documents) statically
 // Files are accessible at /uploads/<filename>
 app.use('/uploads', (req, res, next) => {
-  const allowedOrigins = process.env.NODE_ENV === 'production' 
-    ? ['https://birdsphere.com']
-    : [
-        'http://localhost:3000', 
-        'http://localhost:3001', 
-        'http://localhost:3002',
-        'http://127.0.0.1:3000',
-        'http://127.0.0.1:3001', 
-        'http://127.0.0.1:3002'
-      ];
-  
+  const allowedOrigins = generateAllowedOrigins();
   const origin = req.headers.origin;
-  
+
   if (allowedOrigins.includes(origin)) {
     res.header('Access-Control-Allow-Origin', origin);
     res.header('Access-Control-Allow-Credentials', 'true');
-  } else {
-    // Allow any origin for image files in development - but set specific headers
-    res.header('Access-Control-Allow-Origin', 'http://localhost:3002');
+  } else if (process.env.NODE_ENV === 'development') {
+    // In development, allow access from the primary frontend port
+    const frontendPorts = process.env.FRONTEND_PORTS
+      ? process.env.FRONTEND_PORTS.split(',').map(port => port.trim())
+      : ['3000', '3001', '3002', '3007'];
+    const frontendHost = process.env.FRONTEND_HOST || 'localhost';
+    const primaryOrigin = `http://${frontendHost}:${frontendPorts[0]}`;
+
+    res.header('Access-Control-Allow-Origin', primaryOrigin);
     res.header('Access-Control-Allow-Credentials', 'false');
   }
   

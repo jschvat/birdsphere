@@ -35,13 +35,9 @@ export const getAvatarUrl = (profileImage?: string | null): string | null => {
   // Handle relative URLs - ensure we don't double up on /api/ prefix
   let cleanPath = profileImage;
 
-  // Debug logging to identify the issue
-  console.log('🔍 getAvatarUrl input:', profileImage);
-
   // Remove /api prefix if it exists (since static files are served from root)
   if (cleanPath.startsWith('/api/')) {
     cleanPath = cleanPath.substring(4); // Remove '/api'
-    console.log('🔧 Removed /api prefix. New path:', cleanPath);
   }
 
   // Ensure path starts with /
@@ -52,6 +48,5 @@ export const getAvatarUrl = (profileImage?: string | null): string | null => {
   // Construct absolute URL for static files (no /api prefix)
   const avatarUrl = `${getApiBaseUrl()}${cleanPath}`;
 
-  console.log('✅ Final avatar URL:', avatarUrl);
   return avatarUrl;
 };

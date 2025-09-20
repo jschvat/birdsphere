@@ -137,7 +137,7 @@ class Post {
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
     const sql = `
-      SELECT p.*,
+      SELECT p.*, u.username, u.first_name, u.last_name, u.profile_image,
              COALESCE(json_agg(
                json_build_object(
                  'id', pm.id,
@@ -154,9 +154,10 @@ class Post {
                ) ORDER BY pm.display_order
              ) FILTER (WHERE pm.id IS NOT NULL), '[]'::json) as media
       FROM posts p
+      JOIN users u ON p.author_id = u.id
       LEFT JOIN post_media pm ON p.id = pm.post_id
       ${whereClause}
-      GROUP BY p.id
+      GROUP BY p.id, u.username, u.first_name, u.last_name, u.profile_image
       ORDER BY ${orderBy}
       LIMIT $${paramCount++} OFFSET $${paramCount++}
     `;

@@ -116,21 +116,20 @@ exports.getTimeline = async (req, res) => {
       authorId
     });
 
-    // Add author information to each post
-    const postsWithAuthors = await Promise.all(posts.map(async (post) => {
-      const author = await User.findById(post.author_id);
+    // Transform posts to include author information (now coming from JOIN)
+    const postsWithAuthors = posts.map((post) => {
       return {
         ...post,
         author: {
-          id: author.id,
-          username: author.username,
-          firstName: author.first_name,
-          lastName: author.last_name,
-          profileImage: author.profile_image,
-          isVerified: author.is_verified
+          id: post.author_id,
+          username: post.username,
+          firstName: post.first_name,
+          lastName: post.last_name,
+          profileImage: post.profile_image,
+          isVerified: post.is_verified || false // Default to false if not present
         }
       };
-    }));
+    });
 
     res.json({
       success: true,
@@ -352,21 +351,20 @@ exports.searchPosts = async (req, res) => {
       visibility: 'public'
     });
 
-    // Add author information to each post
-    const postsWithAuthors = await Promise.all(posts.map(async (post) => {
-      const author = await User.findById(post.author_id);
+    // Transform posts to include author information (now coming from JOIN)
+    const postsWithAuthors = posts.map((post) => {
       return {
         ...post,
         author: {
-          id: author.id,
-          username: author.username,
-          firstName: author.first_name,
-          lastName: author.last_name,
-          profileImage: author.profile_image,
-          isVerified: author.is_verified
+          id: post.author_id,
+          username: post.username,
+          firstName: post.first_name,
+          lastName: post.last_name,
+          profileImage: post.profile_image,
+          isVerified: post.is_verified || false // Default to false if not present
         }
       };
-    }));
+    });
 
     res.json({
       success: true,
@@ -418,21 +416,20 @@ exports.getTrendingPosts = async (req, res) => {
       offset
     });
 
-    // Add author information to each post
-    const postsWithAuthors = await Promise.all(posts.map(async (post) => {
-      const author = await User.findById(post.author_id);
+    // Transform posts to include author information (now coming from JOIN)
+    const postsWithAuthors = posts.map((post) => {
       return {
         ...post,
         author: {
-          id: author.id,
-          username: author.username,
-          firstName: author.first_name,
-          lastName: author.last_name,
-          profileImage: author.profile_image,
-          isVerified: author.is_verified
+          id: post.author_id,
+          username: post.username,
+          firstName: post.first_name,
+          lastName: post.last_name,
+          profileImage: post.profile_image,
+          isVerified: post.is_verified || false // Default to false if not present
         }
       };
-    }));
+    });
 
     res.json({
       success: true,
