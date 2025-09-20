@@ -24,7 +24,7 @@ const Login: React.FC = () => {
     e.preventDefault();
     try {
       await login(formData);
-      navigate('/profile');
+      navigate('/timeline');
     } catch (err) {
       // Error is handled by the AuthContext
     }
