@@ -9,12 +9,17 @@ import LoadingSpinner from '../components/Common/LoadingSpinner';
 import ErrorBoundary from '../components/Common/ErrorBoundary';
 
 const Timeline: React.FC = () => {
-  const { user } = useAuth();
+  const { user, isInitialized, isLoading } = useAuth();
   const { posts, loading, error, loadTimeline, hasMore } = usePosts();
   const navigate = useNavigate();
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
+    // Wait for auth to initialize before making authentication decisions
+    if (!isInitialized) {
+      return;
+    }
+
     if (!user) {
       navigate('/login');
       return;
@@ -23,7 +28,7 @@ const Timeline: React.FC = () => {
     // Load initial timeline
     loadTimeline();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, navigate]); // Remove loadTimeline from dependencies to prevent infinite loop
+  }, [user, isInitialized, navigate]); // Remove loadTimeline from dependencies to prevent infinite loop
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -40,6 +45,12 @@ const Timeline: React.FC = () => {
     }
   }, [hasMore, loading, loadTimeline, posts.length]);
 
+  // Show loading spinner while auth is initializing
+  if (!isInitialized || isLoading) {
+    return <LoadingSpinner />;
+  }
+
+  // If auth is initialized but no user, let useEffect handle redirect
   if (!user) {
     return <LoadingSpinner />;
   }

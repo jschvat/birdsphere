@@ -117,6 +117,11 @@ router.post('/register', validate(registerSchema), authController.register);
  *               password:
  *                 type: string
  *                 example: securepass123
+ *               rememberMe:
+ *                 type: boolean
+ *                 default: false
+ *                 description: Keep user logged in for 90 days instead of 7 days
+ *                 example: true
  *     responses:
  *       200:
  *         description: Login successful

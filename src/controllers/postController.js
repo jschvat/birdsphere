@@ -116,7 +116,7 @@ exports.getTimeline = async (req, res) => {
       authorId
     });
 
-    // Transform posts to include author information (now coming from JOIN)
+    // Transform posts to include author information and existing reactions data
     const postsWithAuthors = posts.map((post) => {
       return {
         ...post,
@@ -127,7 +127,9 @@ exports.getTimeline = async (req, res) => {
           lastName: post.last_name,
           profileImage: post.profile_image,
           isVerified: post.is_verified || false // Default to false if not present
-        }
+        },
+        reactions: [], // Will be populated by separate call if needed
+        reactionCounts: post.reaction_counts || {} // Use existing field from database
       };
     });
 
@@ -555,24 +557,29 @@ exports.getUserPosts = async (req, res) => {
  * React to a post
  */
 exports.reactToPost = async (req, res) => {
+  console.log('🎯 Backend: reactToPost called', {
+    postId: req.params.id,
+    userId: req.user?.id,
+    reactionType: req.body.reactionType
+  });
+
   try {
     const { id } = req.params;
     const { reactionType } = req.body;
 
+    console.log('📝 Backend: Validating post exists');
     const post = await Post.findById(id);
     if (!post) {
+      console.log('❌ Backend: Post not found');
       return res.status(404).json({
         success: false,
         message: 'Post not found'
       });
     }
 
-    const reaction = await Reaction.create({
-      userId: req.user.id,
-      targetId: id,
-      targetType: 'post',
-      reactionType
-    });
+    console.log('➕ Backend: Adding reaction via Post.addReaction');
+    const reaction = await Post.addReaction(id, req.user.id, reactionType);
+    console.log('✅ Backend: Reaction added successfully', reaction);
 
     res.json({
       success: true,
@@ -598,7 +605,7 @@ exports.removePostReaction = async (req, res) => {
   try {
     const { id } = req.params;
 
-    await Reaction.remove(req.user.id, id, 'post');
+    await Post.removeReaction(id, req.user.id);
 
     res.json({
       success: true,

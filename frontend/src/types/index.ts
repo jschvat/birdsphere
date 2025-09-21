@@ -58,6 +58,7 @@ export type UserProfileUpdate = Omit<Partial<User>, 'animalInterests'> & {
 export interface LoginCredentials {
   email: string;
   password: string;
+  rememberMe?: boolean;
 }
 
 export interface RegisterData {

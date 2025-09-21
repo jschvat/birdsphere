@@ -374,15 +374,19 @@ class Post {
   }
 
   static async addReaction(postId, userId, reactionType) {
+    console.log('🔧 Post.addReaction called:', { postId, userId, reactionType });
+
     // First, check if reaction already exists
     const existingSQL = `
       SELECT id FROM reactions
       WHERE user_id = $1 AND target_id = $2 AND target_type = 'post'
     `;
     const existing = await query(existingSQL, [userId, postId]);
+    console.log('🔍 Existing reaction check:', { existingCount: existing.rows.length });
 
     if (existing.rows.length > 0) {
       // Update existing reaction
+      console.log('🔄 Updating existing reaction to:', reactionType);
       const updateSQL = `
         UPDATE reactions
         SET reaction_type = $1
@@ -390,17 +394,22 @@ class Post {
         RETURNING *
       `;
       const result = await query(updateSQL, [reactionType, userId, postId]);
+      console.log('✅ Reaction updated, calling updateReactionCounts');
       await this.updateReactionCounts(postId);
+      console.log('✅ Reaction counts updated');
       return result.rows[0];
     } else {
       // Create new reaction
+      console.log('➕ Creating new reaction:', reactionType);
       const insertSQL = `
         INSERT INTO reactions (user_id, target_id, target_type, reaction_type)
         VALUES ($1, $2, 'post', $3)
         RETURNING *
       `;
       const result = await query(insertSQL, [userId, postId, reactionType]);
+      console.log('✅ Reaction created, calling updateReactionCounts');
       await this.updateReactionCounts(postId);
+      console.log('✅ Reaction counts updated');
       return result.rows[0];
     }
   }
@@ -417,6 +426,18 @@ class Post {
   }
 
   static async updateReactionCounts(postId) {
+    console.log('💾 updateReactionCounts called for postId:', postId);
+
+    // First, check current reactions for this post
+    const checkSQL = `
+      SELECT reaction_type, COUNT(*) as count
+      FROM reactions
+      WHERE target_id = $1 AND target_type = 'post'
+      GROUP BY reaction_type
+    `;
+    const currentReactions = await query(checkSQL, [postId]);
+    console.log('📊 Current reactions for post:', currentReactions.rows);
+
     const sql = `
       UPDATE posts
       SET reaction_counts = (
@@ -429,8 +450,11 @@ class Post {
         ) reaction_summary
       )
       WHERE id = $1
+      RETURNING reaction_counts
     `;
-    await query(sql, [postId]);
+    const result = await query(sql, [postId]);
+    console.log('✅ Updated reaction_counts to:', result.rows[0]?.reaction_counts);
+    return result.rows[0];
   }
 
   static async incrementShareCount(postId) {
@@ -444,14 +468,14 @@ class Post {
     return result.rows[0];
   }
 
-  static async incrementCommentCount(postId) {
+  static async incrementCommentCount(postId, increment = 1) {
     const sql = `
       UPDATE posts
-      SET comment_count = comment_count + 1
+      SET comment_count = GREATEST(comment_count + $2, 0)
       WHERE id = $1
       RETURNING comment_count
     `;
-    const result = await query(sql, [postId]);
+    const result = await query(sql, [postId, increment]);
     return result.rows[0];
   }
 
@@ -469,6 +493,27 @@ class Post {
 
     const result = await query(sql, [limit, offset]);
     return result.rows;
+  }
+
+  static async syncCommentCounts() {
+    const sql = `
+      UPDATE posts
+      SET comment_count = (
+        SELECT COUNT(*)
+        FROM comments
+        WHERE comments.post_id = posts.id
+        AND comments.parent_comment_id IS NULL
+        AND comments.is_active = true
+      )
+      WHERE id IN (
+        SELECT DISTINCT post_id
+        FROM comments
+        WHERE is_active = true
+      )
+    `;
+
+    const result = await query(sql);
+    return result.rowCount;
   }
 }
 

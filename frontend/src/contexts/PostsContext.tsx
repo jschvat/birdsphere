@@ -2,6 +2,26 @@ import React, { createContext, useContext, useReducer, useCallback, ReactNode, u
 import api from '../services/api';
 import { Post, CreatePostData, Comment, Reaction } from '../types/index';
 
+// Transform backend response (snake_case) to frontend format (camelCase)
+const transformPostFromApi = (apiPost: any): Post => {
+  return {
+    id: apiPost.id,
+    userId: apiPost.author_id,
+    author: apiPost.author,
+    content: apiPost.content,
+    postType: apiPost.post_type || 'standard',
+    visibility: apiPost.visibility,
+    media: apiPost.media || [],
+    reactions: apiPost.reactions || [],
+    reactionCounts: apiPost.reaction_counts || {},
+    comments: apiPost.comments || [],
+    commentCount: apiPost.comment_count || 0,
+    shareCount: apiPost.share_count || 0,
+    createdAt: apiPost.created_at,
+    updatedAt: apiPost.updated_at,
+  };
+};
+
 interface PostsState {
   posts: Post[];
   loading: boolean;
@@ -225,6 +245,7 @@ interface PostsContextValue extends PostsState {
   addComment: (postId: string, content: string) => Promise<Comment>;
   updateComment: (postId: string, commentId: string, content: string) => Promise<Comment>;
   deleteComment: (postId: string, commentId: string) => Promise<void>;
+  loadComments: (postId: string) => Promise<Comment[]>;
   getPost: (postId: string) => Post | null;
 }
 
@@ -262,9 +283,12 @@ export const PostsProvider: React.FC<PostsProviderProps> = ({ children }) => {
 
       const { data, pagination } = response.data;
 
+      // Transform posts from API format to frontend format
+      const transformedPosts = (data || []).map(transformPostFromApi);
+
       dispatch({
         type: 'LOAD_SUCCESS',
-        posts: data || [],
+        posts: transformedPosts,
         hasMore: pagination?.hasNext || false,
         replace: refresh,
       });
@@ -324,40 +348,29 @@ export const PostsProvider: React.FC<PostsProviderProps> = ({ children }) => {
   }, []);
 
   const addReaction = useCallback(async (postId: string, reactionType: string): Promise<void> => {
-    // Optimistic update
-    const optimisticReaction: Reaction = {
-      id: `temp-${Date.now()}`,
-      userId: 'current-user', // This should come from auth context
-      targetId: postId,
-      targetType: 'post',
-      reactionType: reactionType as 'like' | 'love' | 'laugh' | 'wow' | 'sad' | 'angry' | 'hug',
-      createdAt: new Date().toISOString(),
-    };
-
-    dispatch({ type: 'ADD_REACTION', postId, reaction: optimisticReaction });
-
+    console.log('🌐 API: Adding reaction', { postId, reactionType });
     try {
-      await api.post(`/posts/${postId}/react`, { reactionType });
-      // The backend should return the actual reaction, but we'll keep the optimistic one for now
+      const response = await api.post(`/posts/${postId}/react`, { reactionType });
+      console.log('✅ API: Reaction added successfully', response.data);
+      // Refresh the timeline to get accurate reaction data from backend
+      console.log('🔄 API: Refreshing timeline');
+      await loadTimeline(true);
+      console.log('✅ API: Timeline refreshed');
     } catch (error: any) {
-      // Revert optimistic update
-      dispatch({ type: 'REMOVE_REACTION', postId, reactionId: optimisticReaction.id });
+      console.error('❌ API: Failed to add reaction', error.response?.data || error);
       throw new Error(error.response?.data?.message || 'Failed to add reaction');
     }
-  }, []);
+  }, [loadTimeline]);
 
   const removeReaction = useCallback(async (postId: string, reactionId: string): Promise<void> => {
-    // Optimistic update
-    dispatch({ type: 'REMOVE_REACTION', postId, reactionId });
-
     try {
       await api.delete(`/posts/${postId}/react`);
+      // Refresh the timeline to get accurate reaction data from backend
+      await loadTimeline(true);
     } catch (error: any) {
-      // Revert optimistic update
-      dispatch({ type: 'REVERT_OPTIMISTIC', postId });
       throw new Error(error.response?.data?.message || 'Failed to remove reaction');
     }
-  }, []);
+  }, [loadTimeline]);
 
   const addComment = useCallback(async (postId: string, content: string): Promise<Comment> => {
     try {
@@ -390,6 +403,16 @@ export const PostsProvider: React.FC<PostsProviderProps> = ({ children }) => {
     }
   }, []);
 
+  const loadComments = useCallback(async (postId: string): Promise<Comment[]> => {
+    try {
+      const response = await api.get(`/posts/${postId}/comments`);
+      const { data } = response.data;
+      return data || [];
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Failed to load comments');
+    }
+  }, []);
+
   const getPost = useCallback((postId: string): Post | null => {
     return state.postCache.get(postId) || state.posts.find(post => post.id === postId) || null;
   }, [state.postCache, state.posts]);
@@ -405,6 +428,7 @@ export const PostsProvider: React.FC<PostsProviderProps> = ({ children }) => {
     addComment,
     updateComment,
     deleteComment,
+    loadComments,
     getPost,
   };
 

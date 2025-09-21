@@ -54,7 +54,8 @@ const registerSchema = Joi.object({
 
 const loginSchema = Joi.object({
   email: Joi.string().email({ tlds: { allow: false } }).required(),
-  password: Joi.string().required()
+  password: Joi.string().required(),
+  rememberMe: Joi.boolean().default(false)
 });
 
 const updateUserSchema = Joi.object({

@@ -36,24 +36,6 @@ const { Server } = require('socket.io');   // Real-time WebSocket communication
 const redisClient = require('./config/redis');
 const { swaggerUi, specs } = require('./config/swagger');
 
-// Initialize Express application
-const app = express();
-
-// Create HTTP server for both Express and Socket.IO
-const server = createServer(app);
-
-// Initialize Socket.IO server with CORS configuration
-const io = new Server(server, {
-  cors: {
-    // Allow different origins based on environment
-    origin: generateAllowedOrigins(),
-    credentials: true // Allow cookies and authentication headers
-  }
-});
-
-// Server configuration
-const PORT = process.env.PORT || 3000;
-
 /**
  * Generate CORS allowed origins based on environment variables
  *
@@ -90,6 +72,24 @@ const generateAllowedOrigins = () => {
 
   return origins;
 };
+
+// Initialize Express application
+const app = express();
+
+// Create HTTP server for both Express and Socket.IO
+const server = createServer(app);
+
+// Initialize Socket.IO server with CORS configuration
+const io = new Server(server, {
+  cors: {
+    // Allow different origins based on environment
+    origin: generateAllowedOrigins(),
+    credentials: true // Allow cookies and authentication headers
+  }
+});
+
+// Server configuration
+const PORT = process.env.PORT || 3000;
 
 // Rate limiting configuration
 // Prevents abuse by limiting requests per IP address

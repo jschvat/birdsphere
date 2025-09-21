@@ -48,6 +48,11 @@ exports.createComment = async (req, res) => {
       parentCommentId
     });
 
+    // Update post comment count (only for top-level comments)
+    if (!parentCommentId) {
+      await Post.incrementCommentCount(postId);
+    }
+
     // Get author information for response
     const author = await User.findById(req.user.id);
 
@@ -333,7 +338,17 @@ exports.deleteComment = async (req, res) => {
       });
     }
 
+    // Store post_id and whether it's a top-level comment before deletion
+    const postId = comment.post_id;
+    const isTopLevelComment = !comment.parent_comment_id;
+
     await Comment.delete(id);
+
+    // Update post comment count (only for top-level comments)
+    if (isTopLevelComment) {
+      // Decrement comment count, but ensure it doesn't go below 0
+      await Post.incrementCommentCount(postId, -1);
+    }
 
     res.json({
       success: true,

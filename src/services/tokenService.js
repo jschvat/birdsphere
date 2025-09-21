@@ -6,7 +6,8 @@ class TokenService {
   constructor() {
     this.TOKEN_PREFIX = 'birdsphere:token:';
     this.USER_TOKENS_PREFIX = 'birdsphere:user_tokens:';
-    this.TOKEN_EXPIRY = 90 * 24 * 60 * 60; // 90 days in seconds
+    this.DEFAULT_TOKEN_EXPIRY = 7 * 24 * 60 * 60; // 7 days in seconds
+    this.REMEMBER_ME_EXPIRY = 90 * 24 * 60 * 60; // 90 days in seconds
   }
 
   // Generate a unique token ID for Redis storage
@@ -15,14 +16,18 @@ class TokenService {
   }
 
   // Store token in Redis with user mapping
-  async storeToken(userId, token, deviceInfo = {}, existingTokenId = null) {
+  async storeToken(userId, token, deviceInfo = {}, existingTokenId = null, rememberMe = false) {
     try {
       const tokenId = existingTokenId || this.generateTokenId();
+      const expiryTime = rememberMe ? this.REMEMBER_ME_EXPIRY : this.DEFAULT_TOKEN_EXPIRY;
+
       const tokenData = {
         userId,
         token,
         createdAt: new Date().toISOString(),
         lastUsed: new Date().toISOString(),
+        rememberMe,
+        expiresAt: new Date(Date.now() + (expiryTime * 1000)).toISOString(),
         deviceInfo: {
           userAgent: deviceInfo.userAgent || '',
           ip: deviceInfo.ip || '',
@@ -33,13 +38,13 @@ class TokenService {
       // Store token data
       await redisClient.setEx(
         `${this.TOKEN_PREFIX}${tokenId}`,
-        this.TOKEN_EXPIRY,
+        expiryTime,
         JSON.stringify(tokenData)
       );
 
       // Add token to user's active tokens set
       await redisClient.sAdd(`${this.USER_TOKENS_PREFIX}${userId}`, tokenId);
-      await redisClient.expire(`${this.USER_TOKENS_PREFIX}${userId}`, this.TOKEN_EXPIRY);
+      await redisClient.expire(`${this.USER_TOKENS_PREFIX}${userId}`, expiryTime);
 
       return tokenId;
     } catch (error) {
@@ -57,12 +62,21 @@ class TokenService {
       }
 
       const parsed = JSON.parse(tokenData);
-      
+
+      // Check if token has expired (additional safety check)
+      if (parsed.expiresAt && new Date() > new Date(parsed.expiresAt)) {
+        await this.revokeToken(tokenId);
+        return null;
+      }
+
+      // Determine expiry time based on rememberMe setting
+      const expiryTime = parsed.rememberMe ? this.REMEMBER_ME_EXPIRY : this.DEFAULT_TOKEN_EXPIRY;
+
       // Update last used timestamp
       parsed.lastUsed = new Date().toISOString();
       await redisClient.setEx(
         `${this.TOKEN_PREFIX}${tokenId}`,
-        this.TOKEN_EXPIRY,
+        expiryTime,
         JSON.stringify(parsed)
       );
 
@@ -166,17 +180,20 @@ class TokenService {
   }
 
   // Generate JWT with embedded token ID
-  generateSecureToken(user, tokenId) {
+  generateSecureToken(user, tokenId, rememberMe = false) {
+    const expiresIn = rememberMe ? '90d' : '7d';
+
     return jwt.sign(
-      { 
-        id: user.id, 
-        email: user.email, 
+      {
+        id: user.id,
+        email: user.email,
         username: user.username,
         isBreeder: user.is_breeder,
-        tokenId: tokenId // Embed Redis token ID
+        tokenId: tokenId, // Embed Redis token ID
+        rememberMe: rememberMe
       },
       process.env.JWT_SECRET,
-      { expiresIn: '90d' }
+      { expiresIn }
     );
   }
 }

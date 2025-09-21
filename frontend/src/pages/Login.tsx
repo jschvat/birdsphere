@@ -9,13 +9,14 @@ const Login: React.FC = () => {
   const [formData, setFormData] = useState<LoginCredentials>({
     email: '',
     password: '',
+    rememberMe: false,
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value,
+      [name]: type === 'checkbox' ? checked : value,
     }));
     if (error) clearError();
   };
@@ -174,6 +175,43 @@ const Login: React.FC = () => {
                 </div>
               </div>
 
+              {/* Remember Me Checkbox */}
+              <div className="flex items-center justify-between">
+                <label className="flex items-center space-x-3 cursor-pointer group">
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      name="rememberMe"
+                      checked={formData.rememberMe || false}
+                      onChange={handleChange}
+                      className="sr-only"
+                    />
+                    <div className={`w-5 h-5 border-2 rounded transition-all duration-200 flex items-center justify-center ${
+                      formData.rememberMe
+                        ? 'bg-primary border-primary shadow-md transform scale-110'
+                        : 'border-base-content/30 group-hover:border-primary/50'
+                    }`}>
+                      {formData.rememberMe && (
+                        <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                  <span className="text-sm font-medium text-base-content/80 group-hover:text-base-content transition-colors duration-200">
+                    Remember me for 90 days
+                  </span>
+                </label>
+
+                <button
+                  type="button"
+                  className="text-sm text-base-content/70 hover:text-base-content transition-colors duration-200 underline underline-offset-2"
+                  onClick={() => alert('Forgot password functionality coming soon!')}
+                >
+                  Forgot password?
+                </button>
+              </div>
+
               <div className="pt-4">
                 <button
                   type="submit"
@@ -196,16 +234,6 @@ const Login: React.FC = () => {
                 </button>
               </div>
             </form>
-
-            {/* Forgot Password */}
-            <div className="text-center mt-6">
-              <button 
-                className="text-sm text-base-content/70 hover:text-base-content transition-colors duration-200 underline underline-offset-2"
-                onClick={() => alert('Forgot password functionality coming soon!')}
-              >
-                Forgot your password?
-              </button>
-            </div>
 
             {/* Divider */}
             <div className="flex items-center my-8">

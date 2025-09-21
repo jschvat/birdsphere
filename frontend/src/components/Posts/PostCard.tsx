@@ -1,7 +1,7 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { usePosts } from '../../contexts/PostsContext';
-import { Post } from '../../types/index';
+import { Post, Comment } from '../../types/index';
 import CommentsSection from './CommentsSection';
 import MediaDisplay from '../Media/MediaDisplay';
 import { getAvatarUrl } from '../../utils/avatarUtils';
@@ -12,9 +12,11 @@ interface PostCardProps {
 
 const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const { user } = useAuth();
-  const { addReaction, removeReaction, deletePost, updatePost } = usePosts();
+  const { addReaction, removeReaction, deletePost, updatePost, loadComments } = usePosts();
 
   const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [loadingComments, setLoadingComments] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(post.content);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -49,27 +51,49 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     return post.reactions?.find(r => r.userId === user?.id);
   }, [post.reactions, user?.id]);
 
+  // Load comments when comments section is opened
+  useEffect(() => {
+    if (showComments && comments.length === 0 && !loadingComments) {
+      setLoadingComments(true);
+      loadComments(post.id)
+        .then(setComments)
+        .catch(error => {
+          console.error('Failed to load comments:', error);
+        })
+        .finally(() => {
+          setLoadingComments(false);
+        });
+    }
+  }, [showComments, comments.length, loadingComments, loadComments, post.id]);
+
   const handleReaction = async (reactionType: string) => {
-    if (!user) return;
+    console.log('🔥 handleReaction called:', { reactionType, postId: post.id, user: user?.id });
+
+    if (!user) {
+      console.log('❌ No user logged in');
+      return;
+    }
 
     const existingReaction = getUserReaction();
+    console.log('🔍 Existing reaction:', existingReaction);
 
     try {
       if (existingReaction) {
         if (existingReaction.reactionType === reactionType) {
-          // Remove reaction if clicking the same one
+          console.log('🗑️ Removing same reaction');
           await removeReaction(post.id, existingReaction.id);
         } else {
-          // Remove old reaction and add new one
+          console.log('🔄 Switching reaction from', existingReaction.reactionType, 'to', reactionType);
           await removeReaction(post.id, existingReaction.id);
           await addReaction(post.id, reactionType);
         }
       } else {
-        // Add new reaction
+        console.log('➕ Adding new reaction');
         await addReaction(post.id, reactionType);
       }
+      console.log('✅ Reaction operation completed');
     } catch (error) {
-      console.error('Failed to update reaction:', error);
+      console.error('❌ Failed to update reaction:', error);
     }
   };
 
@@ -252,27 +276,29 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
         </div>
       )}
 
-      {/* Reaction Summary */}
-      {post.reactionCounts && Object.values(post.reactionCounts).some(count => count > 0) && (
-        <div className="flex items-center justify-between py-1 mb-2 border-b border-gray-100">
-          <div className="flex items-center space-x-1">
+      {/* Engagement Summary */}
+      {(post.reactionCounts && Object.values(post.reactionCounts).some(count => count > 0)) ||
+       post.commentCount > 0 ||
+       post.shareCount > 0 ? (
+        <div className="flex items-center justify-between py-2 mb-2 border-b border-gray-100">
+          <div className="flex items-center space-x-2">
             {getTopReactions().map(([type, count]) => (
               <span key={type} className="flex items-center space-x-1 text-xs text-gray-600">
                 <span>{reactionEmojis[type as keyof typeof reactionEmojis]}</span>
-                <span>{type} {count}</span>
+                <span>{count}</span>
               </span>
             ))}
           </div>
           <div className="flex items-center space-x-3 text-xs text-gray-500">
             {post.commentCount > 0 && (
-              <span>comment {post.commentCount}</span>
+              <span>{post.commentCount} comment{post.commentCount !== 1 ? 's' : ''}</span>
             )}
             {post.shareCount > 0 && (
               <span>{post.shareCount} share{post.shareCount !== 1 ? 's' : ''}</span>
             )}
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* Action Buttons */}
       <div className="flex items-center justify-between pt-1">
@@ -322,7 +348,13 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       {/* Comments Section */}
       {showComments && (
         <div className="mt-3 pt-3 border-t border-gray-200">
-          <CommentsSection postId={post.id} comments={post.comments || []} />
+          {loadingComments ? (
+            <div className="text-center py-4 text-gray-500">
+              Loading comments...
+            </div>
+          ) : (
+            <CommentsSection postId={post.id} comments={comments} />
+          )}
         </div>
       )}
     </article>

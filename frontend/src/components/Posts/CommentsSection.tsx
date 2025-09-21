@@ -140,7 +140,7 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, postId, isReply = fa
   const [replyContent, setReplyContent] = useState('');
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
 
-  const isOwner = user?.id === comment.userId;
+  const isOwner = user?.id === comment.author.id;
 
   const reactionEmojis = {
     like: '👍',

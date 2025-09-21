@@ -167,7 +167,7 @@ const register = async (req, res) => {
 
 const login = async (req, res) => {
   try {
-    const { email, password } = req.validatedData;
+    const { email, password, rememberMe = false } = req.validatedData;
 
     // Find user by email
     const user = await User.findByEmail(email);
@@ -190,19 +190,23 @@ const login = async (req, res) => {
       ip: req.ip || req.connection.remoteAddress,
       fingerprint: req.headers['x-fingerprint'] || ''
     };
-    
-    const tokenId = await tokenService.storeToken(user.id, null, deviceInfo);
-    const token = tokenService.generateSecureToken(user, tokenId);
-    
-    // Update token in Redis with actual JWT
-    await tokenService.storeToken(user.id, token, deviceInfo, tokenId);
 
-    // Set secure httpOnly cookie
+    const tokenId = await tokenService.storeToken(user.id, null, deviceInfo, null, rememberMe);
+    const token = tokenService.generateSecureToken(user, tokenId, rememberMe);
+
+    // Update token in Redis with actual JWT
+    await tokenService.storeToken(user.id, token, deviceInfo, tokenId, rememberMe);
+
+    // Set secure httpOnly cookie with appropriate expiration
+    const cookieMaxAge = rememberMe
+      ? 90 * 24 * 60 * 60 * 1000  // 90 days for remember me
+      : 7 * 24 * 60 * 60 * 1000;  // 7 days for regular login
+
     res.cookie('authToken', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 90 * 24 * 60 * 60 * 1000, // 90 days
+      maxAge: cookieMaxAge,
       path: '/'
     });
 
