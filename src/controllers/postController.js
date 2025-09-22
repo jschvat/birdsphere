@@ -9,9 +9,16 @@ const { validationResult } = require('express-validator');
  * Create a new post
  */
 exports.createPost = async (req, res) => {
+  console.log('🔍 createPost called with:', {
+    body: req.body,
+    files: req.files ? req.files.length : 0,
+    fileNames: req.files ? req.files.map(f => f.originalname) : []
+  });
+
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log('❌ Validation errors:', errors.array());
       return res.status(400).json({
         success: false,
         message: 'Validation failed',
@@ -28,13 +35,42 @@ exports.createPost = async (req, res) => {
       locationLng,
       locationName,
       originalPostId,
-      shareComment,
-      media = []
+      shareComment
     } = req.body;
 
+    // Check if post has content or files
+    const hasContent = content && content.trim().length > 0;
+    const hasFiles = req.files && req.files.length > 0;
+
+    if (!hasContent && !hasFiles) {
+      return res.status(400).json({
+        success: false,
+        message: 'Post must contain either text content or files'
+      });
+    }
+
+    // Process uploaded files into media array for the Post model
+    const publicUploadUrl = process.env.PUBLIC_UPLOAD_URL || '/uploads';
+    const mediaAttachments = req.files ? req.files.map((file, index) => ({
+      id: file.filename.split('.')[0], // Use filename without extension as ID
+      filename: file.filename,
+      originalName: file.originalname,
+      mimetype: file.mimetype,
+      size: file.size,
+      category: file.category || 'image',
+      url: `${publicUploadUrl}/${file.filename}`,
+      metadata: {
+        width: file.width,
+        height: file.height,
+        duration: file.duration,
+        thumbnail: file.thumbnail
+      }
+    })) : [];
+
+    // Create the post using the Post model (which handles mediaAttachments properly)
     const post = await Post.create({
       authorId: req.user.id,
-      content,
+      content: content || '', // Use empty string if content is undefined/null
       postType,
       visibility,
       isPinned,
@@ -43,7 +79,7 @@ exports.createPost = async (req, res) => {
       locationName,
       originalPostId,
       shareComment,
-      media
+      mediaAttachments
     });
 
     // Get author information for response
@@ -66,6 +102,8 @@ exports.createPost = async (req, res) => {
     });
 
   } catch (error) {
+    console.log('💥 Error creating post:', error);
+    console.log('💥 Error stack:', error.stack);
     res.status(500).json({
       success: false,
       message: 'Failed to create post',
@@ -116,8 +154,33 @@ exports.getTimeline = async (req, res) => {
       authorId
     });
 
-    // Transform posts to include author information and existing reactions data
-    const postsWithAuthors = posts.map((post) => {
+    // Transform posts to include author information, reactions, and comments data
+    const postsWithAuthors = await Promise.all(posts.map(async (post) => {
+      console.log('📊 Post media data for post:', post.id, 'media:', post.media);
+
+      // Fetch comments for this post
+      const comments = await Comment.findByPostId(post.id, {
+        limit: 10, // Get first 10 comments
+        sort: 'newest',
+        includeReplies: false // Only top-level comments for now
+      });
+
+      // Transform comments to include author information
+      const commentsWithAuthors = await Promise.all(comments.map(async (comment) => {
+        const commentAuthor = await User.findById(comment.author_id);
+        return {
+          ...comment,
+          author: {
+            id: commentAuthor.id,
+            username: commentAuthor.username,
+            firstName: commentAuthor.first_name,
+            lastName: commentAuthor.last_name,
+            profileImage: commentAuthor.profile_image,
+            isVerified: commentAuthor.is_verified || false
+          }
+        };
+      }));
+
       return {
         ...post,
         author: {
@@ -129,9 +192,10 @@ exports.getTimeline = async (req, res) => {
           isVerified: post.is_verified || false // Default to false if not present
         },
         reactions: [], // Will be populated by separate call if needed
-        reactionCounts: post.reaction_counts || {} // Use existing field from database
+        reactionCounts: post.reaction_counts || {}, // Use existing field from database
+        comments: commentsWithAuthors // Include comments with author info
       };
-    });
+    }));
 
     res.json({
       success: true,

@@ -1,4 +1,4 @@
-const { query } = require('../config/database');
+const { query, getClient } = require('../config/database');
 
 class Post {
   static async create({
@@ -6,27 +6,77 @@ class Post {
     content,
     visibility = 'public',
     mediaAttachments = [],
-    locationCity = null,
-    locationState = null,
-    locationCountry = null,
-    tags = []
+    postType = 'standard',
+    isPinned = false,
+    locationLat = null,
+    locationLng = null,
+    locationName = null,
+    originalPostId = null,
+    shareComment = null
   }) {
-    const sql = `
-      INSERT INTO posts (
-        author_id, content, visibility, media_attachments,
-        location_city, location_state, location_country, tags
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      RETURNING *
-    `;
+    // Start transaction
+    const client = await getClient();
 
-    const values = [
-      authorId, content, visibility, JSON.stringify(mediaAttachments),
-      locationCity, locationState, locationCountry, tags
-    ];
+    try {
+      await client.query('BEGIN');
 
-    const result = await query(sql, values);
-    return result.rows[0];
+      // Insert post
+      const postSql = `
+        INSERT INTO posts (
+          author_id, content, visibility, post_type, is_pinned,
+          location_lat, location_lng, location_name
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        RETURNING *
+      `;
+
+      const postValues = [
+        authorId, content, visibility, postType, isPinned,
+        locationLat, locationLng, locationName
+      ];
+
+      const postResult = await client.query(postSql, postValues);
+      const post = postResult.rows[0];
+
+      // Insert media attachments if any
+      if (mediaAttachments && mediaAttachments.length > 0) {
+        for (let i = 0; i < mediaAttachments.length; i++) {
+          const media = mediaAttachments[i];
+          const mediaSql = `
+            INSERT INTO post_media (
+              post_id, file_type, file_url, file_name, file_size, mime_type,
+              width, height, duration, thumbnail_url, display_order
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+          `;
+
+          const mediaValues = [
+            post.id,
+            media.category || 'image',
+            media.url,
+            media.originalName || media.filename,
+            media.size || 0,
+            media.mimetype,
+            media.metadata?.width,
+            media.metadata?.height,
+            media.metadata?.duration,
+            media.metadata?.thumbnail,
+            i
+          ];
+
+          await client.query(mediaSql, mediaValues);
+        }
+      }
+
+      await client.query('COMMIT');
+      client.release();
+
+      return post;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      client.release();
+      throw error;
+    }
   }
 
   static async findById(id) {

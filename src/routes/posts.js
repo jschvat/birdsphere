@@ -9,10 +9,9 @@ const commentController = require('../controllers/commentController');
 // Validation rules
 const createPostValidation = [
   body('content')
-    .notEmpty()
-    .withMessage('Post content is required')
-    .isLength({ min: 1, max: 5000 })
-    .withMessage('Post content must be between 1 and 5000 characters'),
+    .optional()
+    .isLength({ max: 5000 })
+    .withMessage('Post content must not exceed 5000 characters'),
   body('postType')
     .optional()
     .isIn(['standard', 'share', 'announcement', 'question', 'sale'])
@@ -45,10 +44,13 @@ router.get('/search', postController.searchPosts);
 
 // Post CRUD routes - includes media upload support
 router.post('/', authenticateToken, (req, res, next) => {
+  console.log('📍 POST /api/posts route hit');
   uploadPostFiles(req, res, (err) => {
     if (err) {
+      console.log('❌ Upload error in route:', err);
       return handleUploadError(err, req, res, next);
     }
+    console.log('✅ Upload successful, processing files');
     processPostFiles(req, res, next);
   });
 }, createPostValidation, postController.createPost);

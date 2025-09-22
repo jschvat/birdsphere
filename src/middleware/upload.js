@@ -2,18 +2,27 @@ const multer = require('multer');
 const path = require('path');
 const crypto = require('crypto');
 
-// Configure storage
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, process.env.UPLOAD_PATH || 'uploads/');
-  },
-  filename: (req, file, cb) => {
-    // Generate unique filename
-    const uniqueSuffix = crypto.randomUUID();
-    const extension = path.extname(file.originalname);
-    cb(null, `${uniqueSuffix}${extension}`);
-  }
-});
+// Configure storage for different upload types
+const createStorage = (pathEnvVar, defaultPath) => {
+  return multer.diskStorage({
+    destination: (req, file, cb) => {
+      const uploadPath = process.env[pathEnvVar] || defaultPath;
+      cb(null, uploadPath);
+    },
+    filename: (req, file, cb) => {
+      // Generate unique filename
+      const uniqueSuffix = crypto.randomUUID();
+      const extension = path.extname(file.originalname);
+      cb(null, `${uniqueSuffix}${extension}`);
+    }
+  });
+};
+
+// Different storage configurations
+const generalStorage = createStorage('UPLOAD_PATH', 'uploads/');
+const avatarStorage = createStorage('AVATAR_PATH', 'uploads/avatars/');
+const postStorage = createStorage('POST_MEDIA_PATH', 'uploads/posts/');
+const downloadStorage = createStorage('DOWNLOAD_PATH', 'uploads/downloads/');
 
 // File filter function for posts (supports multiple file types)
 const postFileFilter = (req, file, cb) => {
@@ -102,7 +111,7 @@ const basicFileFilter = (req, file, cb) => {
 
 // Configure multer for basic uploads
 const upload = multer({
-  storage: storage,
+  storage: generalStorage,
   limits: {
     fileSize: parseInt(process.env.MAX_FILE_SIZE) || 10 * 1024 * 1024, // 10MB default
     files: 10 // Maximum 10 files per upload
@@ -112,12 +121,22 @@ const upload = multer({
 
 // Configure multer for post uploads (supports all file types)
 const postUpload = multer({
-  storage: storage,
+  storage: postStorage,
   limits: {
     fileSize: parseInt(process.env.MAX_POST_FILE_SIZE) || 50 * 1024 * 1024, // 50MB default for posts
     files: 20 // Maximum 20 files per post
   },
   fileFilter: postFileFilter
+});
+
+// Configure multer for avatar uploads
+const avatarUpload = multer({
+  storage: avatarStorage,
+  limits: {
+    fileSize: parseInt(process.env.MAX_FILE_SIZE) || 10 * 1024 * 1024, // 10MB default
+    files: 1 // Only one avatar file
+  },
+  fileFilter: basicFileFilter
 });
 
 // Middleware for single file upload
@@ -127,16 +146,17 @@ const uploadSingle = upload.single('file');
 const uploadMultiple = upload.array('files', 10);
 
 // Middleware for profile image upload
-const uploadProfileImage = upload.single('profileImage');
+const uploadProfileImage = avatarUpload.single('profileImage');
 
 // Middleware for post file uploads (supports all file types)
-const uploadPostFiles = postUpload.array('files', 20);
+const uploadPostFiles = postUpload.array('media', 20);
 
 // Middleware for single post file upload
 const uploadPostSingle = postUpload.single('file');
 
 // Error handling middleware
 const handleUploadError = (err, req, res, next) => {
+  console.log('🚨 Upload error occurred:', err);
   if (err instanceof multer.MulterError) {
     if (err.code === 'LIMIT_FILE_SIZE') {
       return res.status(400).json({
@@ -232,6 +252,8 @@ const categorizeFile = (file) => {
 
 // Enhanced middleware to process uploaded files with metadata
 const processPostFiles = (req, res, next) => {
+  const publicUploadUrl = process.env.PUBLIC_UPLOAD_URL || '/uploads';
+
   if (req.file) {
     req.uploadedFile = {
       path: req.file.path,
@@ -240,7 +262,7 @@ const processPostFiles = (req, res, next) => {
       size: req.file.size,
       originalName: req.file.originalname,
       category: categorizeFile(req.file),
-      url: `/uploads/${req.file.filename}`
+      url: `${publicUploadUrl}/${req.file.filename}`
     };
   }
 
@@ -252,7 +274,7 @@ const processPostFiles = (req, res, next) => {
       size: file.size,
       originalName: file.originalname,
       category: categorizeFile(file),
-      url: `/uploads/${file.filename}`
+      url: `${publicUploadUrl}/${file.filename}`
     }));
   }
 

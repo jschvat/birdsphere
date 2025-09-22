@@ -6,10 +6,13 @@
 
 /**
  * Get the backend API base URL
+ *
+ * Uses the centralized REACT_APP_API_URL environment variable that matches
+ * the BACKEND_PORT configuration in root .env file.
  */
 const getApiBaseUrl = (): string => {
   // Get the base URL without /api suffix for static files
-  const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3015/api';
+  const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3000/api';
   // Remove /api suffix if present
   return apiUrl.replace(/\/api$/, '');
 };

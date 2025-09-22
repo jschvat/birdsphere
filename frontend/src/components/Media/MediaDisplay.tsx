@@ -14,10 +14,10 @@ const MediaDisplay: React.FC<MediaDisplayProps> = ({ media, maxHeight = '400px' 
     return null;
   }
 
-  const images = media.filter(m => m.category === 'image');
-  const videos = media.filter(m => m.category === 'video');
-  const documents = media.filter(m => m.category === 'document');
-  const others = media.filter(m => !['image', 'video', 'document'].includes(m.category));
+  const images = media.filter(m => (m.category || m.fileType) === 'image');
+  const videos = media.filter(m => (m.category || m.fileType) === 'video');
+  const documents = media.filter(m => (m.category || m.fileType) === 'document');
+  const others = media.filter(m => !['image', 'video', 'document'].includes(m.category || m.fileType || ''));
 
   const openLightbox = (index: number) => {
     setSelectedImageIndex(index);
@@ -85,8 +85,8 @@ const MediaDisplay: React.FC<MediaDisplayProps> = ({ media, maxHeight = '400px' 
               onClick={() => openLightbox(index)}
             >
               <img
-                src={image.url}
-                alt={image.originalName}
+                src={image.url || image.fileUrl || ''}
+                alt={image.originalName || image.fileName || ''}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                 style={{
                   height: images.length === 1 ? 'auto' : '200px',
@@ -125,7 +125,7 @@ const MediaDisplay: React.FC<MediaDisplayProps> = ({ media, maxHeight = '400px' 
                 style={{ maxHeight }}
                 poster={video.metadata?.thumbnail}
               >
-                <source src={video.url} type={video.mimetype} />
+                <source src={video.url || video.fileUrl || ''} type={video.mimetype || video.mimeType || ''} />
                 Your browser does not support the video tag.
               </video>
             </div>
@@ -140,20 +140,20 @@ const MediaDisplay: React.FC<MediaDisplayProps> = ({ media, maxHeight = '400px' 
             <div key={file.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">
               <div className="flex items-center space-x-3 flex-1 min-w-0">
                 <span className="text-2xl flex-shrink-0">
-                  {getFileIcon(file.mimetype, file.category)}
+                  {getFileIcon(file.mimetype || file.mimeType || '', file.category || file.fileType || '')}
                 </span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 truncate">
-                    {file.originalName}
+                    {file.originalName || file.fileName}
                   </p>
                   <p className="text-xs text-gray-500">
-                    {formatFileSize(file.size)} • {file.mimetype}
+                    {formatFileSize(file.size || file.fileSize || 0)} • {file.mimetype || file.mimeType}
                   </p>
                 </div>
               </div>
               <a
-                href={file.url}
-                download={file.originalName}
+                href={file.url || file.fileUrl || ''}
+                download={file.originalName || file.fileName}
                 className="flex-shrink-0 ml-3 p-2 text-gray-400 hover:text-blue-500 transition-colors"
                 title="Download file"
               >
@@ -206,16 +206,16 @@ const MediaDisplay: React.FC<MediaDisplayProps> = ({ media, maxHeight = '400px' 
 
             {/* Image */}
             <img
-              src={images[selectedImageIndex].url}
-              alt={images[selectedImageIndex].originalName}
+              src={images[selectedImageIndex].url || images[selectedImageIndex].fileUrl || ''}
+              alt={images[selectedImageIndex].originalName || images[selectedImageIndex].fileName || ''}
               className="max-w-full max-h-full object-contain"
             />
 
             {/* Image info */}
             <div className="absolute bottom-4 left-4 right-4 bg-black bg-opacity-50 text-white p-3 rounded">
-              <p className="text-sm font-medium">{images[selectedImageIndex].originalName}</p>
+              <p className="text-sm font-medium">{images[selectedImageIndex].originalName || images[selectedImageIndex].fileName}</p>
               <p className="text-xs opacity-75">
-                {selectedImageIndex + 1} of {images.length} • {formatFileSize(images[selectedImageIndex].size)}
+                {selectedImageIndex + 1} of {images.length} • {formatFileSize(images[selectedImageIndex].size || images[selectedImageIndex].fileSize || 0)}
               </p>
             </div>
           </div>

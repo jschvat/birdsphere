@@ -305,7 +305,7 @@ export const PostsProvider: React.FC<PostsProviderProps> = ({ children }) => {
   const createPost = useCallback(async (data: CreatePostData): Promise<Post> => {
     try {
       const formData = new FormData();
-      formData.append('content', data.content);
+      if (data.content) formData.append('content', data.content);
       if (data.visibility) formData.append('visibility', data.visibility);
       if (data.postType) formData.append('postType', data.postType);
 

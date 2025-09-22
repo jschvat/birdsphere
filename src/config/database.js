@@ -27,4 +27,8 @@ const query = async (text, params) => {
   }
 };
 
-module.exports = { pool, query };
+const getClient = async () => {
+  return await pool.connect();
+};
+
+module.exports = { pool, query, getClient };

@@ -35,8 +35,12 @@ const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated }) => {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    if (!content.trim()) {
-      setError('Post content is required');
+    // Check if post has content or files
+    const hasContent = content.trim().length > 0;
+    const hasFiles = selectedFiles.length > 0;
+
+    if (!hasContent && !hasFiles) {
+      setError('Post must contain either text content or files');
       return;
     }
 
@@ -45,7 +49,7 @@ const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated }) => {
 
     try {
       const postData: CreatePostData = {
-        content: content.trim(),
+        content: hasContent ? content.trim() : undefined,
         postType,
         visibility,
         media: selectedFiles.length > 0 ? selectedFiles : undefined,
@@ -270,9 +274,9 @@ const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated }) => {
           {/* Submit Button */}
           <button
             type="submit"
-            disabled={!content.trim() || isSubmitting}
+            disabled={(!content.trim() && selectedFiles.length === 0) || isSubmitting}
             className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
-              content.trim() && !isSubmitting
+              (content.trim() || selectedFiles.length > 0) && !isSubmitting
                 ? 'btn-birdsphere shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
                 : 'bg-gray-200 text-gray-400 cursor-not-allowed'
             }`}

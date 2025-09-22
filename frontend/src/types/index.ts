@@ -115,7 +115,7 @@ export interface Post {
 }
 
 export interface CreatePostData {
-  content: string;
+  content?: string;
   postType?: 'standard' | 'share' | 'announcement' | 'question' | 'sale';
   visibility?: 'public' | 'followers' | 'private';
   media?: File[];
@@ -153,12 +153,17 @@ export interface Reaction {
 
 export interface MediaFile {
   id: string;
-  filename: string;
-  originalName: string;
-  mimetype: string;
-  size: number;
-  category: 'image' | 'video' | 'document' | 'model' | 'archive';
-  url: string;
+  filename?: string;
+  fileName?: string;
+  originalName?: string;
+  mimetype?: string;
+  mimeType?: string;
+  size?: number;
+  fileSize?: number;
+  category?: 'image' | 'video' | 'document' | 'model' | 'archive';
+  fileType?: string;
+  url?: string;
+  fileUrl?: string;
   metadata?: {
     width?: number;
     height?: number;

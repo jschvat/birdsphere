@@ -35,18 +35,19 @@ import axios from 'axios';
 
 /**
  * API Base URL Configuration
- * 
- * Determines the base URL for all API requests using environment variables
- * for different deployment environments (development, staging, production).
- * 
+ *
+ * Determines the base URL for all API requests using centralized environment variables.
+ * This configuration is synchronized with the root .env file's BACKEND_PORT setting.
+ *
  * Environment Configuration:
- * - REACT_APP_API_URL: Custom API URL from environment variables
- * - Default: http://localhost:3000 for development
- * 
+ * - REACT_APP_API_URL: Custom API URL from frontend/.env (points to BACKEND_PORT)
+ * - Default: http://localhost:3000/api (matches root .env BACKEND_PORT=3000)
+ *
+ * IMPORTANT: This URL must match the BACKEND_PORT in root .env to prevent CORS issues.
  * Production deployments should set REACT_APP_API_URL to the appropriate
  * backend server URL (e.g., https://api.birdsphere.com)
  */
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3015/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000/api';
 
 /**
  * Axios Instance Configuration
