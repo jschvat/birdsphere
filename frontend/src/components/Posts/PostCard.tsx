@@ -11,12 +11,14 @@ interface PostCardProps {
 
 const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const { user } = useAuth();
-  const { updatePost, deletePost, addReaction } = usePosts();
+  const { updatePost, deletePost, addReaction, loadComments, addComment } = usePosts();
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(post.content);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
   const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState(post.comments || []);
+  const [loadingComments, setLoadingComments] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const reactionButtonRef = useRef<HTMLButtonElement>(null);
@@ -79,6 +81,39 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       await addReaction(post.id, reactionType);
     } catch (error) {
       console.error('Failed to add reaction:', error);
+    }
+  };
+
+  const handleToggleComments = async () => {
+    const newShowComments = !showComments;
+    setShowComments(newShowComments);
+
+    // If showing comments and we don't have them loaded yet, fetch them
+    if (newShowComments && comments.length === 0 && post.commentCount > 0) {
+      setLoadingComments(true);
+      try {
+        const fetchedComments = await loadComments(post.id);
+        setComments(fetchedComments);
+      } catch (error) {
+        console.error('Failed to load comments:', error);
+      } finally {
+        setLoadingComments(false);
+      }
+    }
+  };
+
+  const handleSubmitComment = async () => {
+    if (!commentText.trim()) return;
+
+    setIsSubmittingComment(true);
+    try {
+      const newComment = await addComment(post.id, commentText.trim());
+      setComments(prev => [...prev, newComment]);
+      setCommentText('');
+    } catch (error) {
+      console.error('Failed to add comment:', error);
+    } finally {
+      setIsSubmittingComment(false);
     }
   };
 
@@ -329,7 +364,12 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
               {getReactionDisplay()}
             </div>
             <div className="flex items-center space-x-4 text-sm text-gray-500">
-              <span>{post.commentCount || 0} comments</span>
+              <span
+                className="cursor-pointer hover:text-blue-600 transition-colors"
+                onClick={handleToggleComments}
+              >
+                {post.commentCount || 0} comments
+              </span>
               <span>{post.shareCount || 0} shares</span>
             </div>
           </div>
@@ -381,7 +421,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
 
               {/* Comment Button */}
               <button
-                onClick={() => setShowComments(!showComments)}
+                onClick={handleToggleComments}
                 className="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -425,13 +465,23 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
               </div>
               <div className="flex-1">
                 <textarea
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
                   placeholder="Write a comment..."
                   className="w-full resize-none border border-gray-300 rounded-lg p-3 text-sm text-gray-900 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   rows={2}
+                  maxLength={1000}
                 />
-                <div className="flex justify-end mt-2">
-                  <button className="px-4 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                    Comment
+                <div className="flex justify-between items-center mt-2">
+                  <span className="text-xs text-gray-500">
+                    {commentText.length}/1000 characters
+                  </span>
+                  <button
+                    onClick={handleSubmitComment}
+                    disabled={!commentText.trim() || isSubmittingComment || commentText.length > 1000}
+                    className="px-4 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {isSubmittingComment ? 'Posting...' : 'Comment'}
                   </button>
                 </div>
               </div>
@@ -439,8 +489,12 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
 
             {/* Comments List */}
             <div className="space-y-3">
-              {post.comments && post.comments.length > 0 ? (
-                post.comments.map((comment) => (
+              {loadingComments ? (
+                <div className="text-center py-4">
+                  <p className="text-sm text-gray-500">Loading comments...</p>
+                </div>
+              ) : comments && comments.length > 0 ? (
+                comments.map((comment) => (
                   <div key={comment.id} className="flex space-x-3">
                     <div className="flex-shrink-0">
                       {getAvatarUrl(comment.author.profileImage) ? (
