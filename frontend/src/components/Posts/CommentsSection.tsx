@@ -1,12 +1,13 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { usePosts } from '../../contexts/PostsContext';
-import { Comment } from '../../types/index';
-import { getAvatarUrl } from '../../utils/avatarUtils';
+import { Comment, CreateCommentData } from '../../types/index';
+import { getAvatarUrl, getMediaUrl } from '../../utils/avatarUtils';
 
 interface CommentsSectionProps {
   postId: string;
-  comments: Comment[];
+  comments?: Comment[];
+  onToggleComments?: () => void;
 }
 
 interface CommentItemProps {
@@ -16,24 +17,112 @@ interface CommentItemProps {
   onReply?: (commentId: string) => void;
 }
 
-const CommentsSection: React.FC<CommentsSectionProps> = ({ postId, comments }) => {
+const CommentsSection: React.FC<CommentsSectionProps> = ({ postId, comments, onToggleComments }) => {
   const { user } = useAuth();
-  const { addComment } = usePosts();
+  const { addComment, addCommentWithMedia, loadComments } = usePosts();
 
   const [newComment, setNewComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [showMediaUpload, setShowMediaUpload] = useState(false);
+  const [showCommentForm, setShowCommentForm] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [loadedComments, setLoadedComments] = useState<Comment[]>([]);
+  const [isLoadingComments, setIsLoadingComments] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const hasLoadedRef = useRef(false);
+  const currentPostIdRef = useRef<string>(postId);
+
+  // Reset loading state when postId changes
+  useEffect(() => {
+    if (currentPostIdRef.current !== postId) {
+      hasLoadedRef.current = false;
+      currentPostIdRef.current = postId;
+      setLoadedComments([]);
+    }
+  }, [postId]);
+
+  // Manual comment loading function
+  const handleLoadComments = useCallback(async () => {
+    if (hasLoadedRef.current || isLoadingComments) return;
+
+    hasLoadedRef.current = true;
+    setIsLoadingComments(true);
+    try {
+      const fetchedComments = await loadComments(postId);
+      setLoadedComments(fetchedComments);
+    } catch (error) {
+      console.error('Failed to load comments:', error);
+      setLoadedComments([]);
+      hasLoadedRef.current = false; // Reset on error
+    } finally {
+      setIsLoadingComments(false);
+    }
+  }, [postId, loadComments]);
+
+  // Automatically load comments when component mounts (since it's only shown when toggled)
+  useEffect(() => {
+    if (!comments && !hasLoadedRef.current) {
+      hasLoadedRef.current = true;
+      setIsLoadingComments(true);
+
+      loadComments(postId).then((fetchedComments) => {
+        setLoadedComments(fetchedComments);
+      }).catch((error) => {
+        console.error('Failed to load comments:', error);
+        setLoadedComments([]);
+        hasLoadedRef.current = false; // Reset on error
+      }).finally(() => {
+        setIsLoadingComments(false);
+      });
+    } else if (comments && comments.length > 0) {
+      setLoadedComments(comments);
+      hasLoadedRef.current = true;
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [postId]);
+
+  // Use provided comments or loaded comments
+  const displayComments = comments || loadedComments;
 
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!newComment.trim() || isSubmitting) return;
+    // Allow submission if there's text content OR media files, but not both empty
+    if ((!newComment.trim() && selectedFiles.length === 0) || isSubmitting) return;
 
     setIsSubmitting(true);
     try {
-      await addComment(postId, newComment.trim());
+      if (selectedFiles.length > 0) {
+        // Use enhanced comment with media
+        const commentData: CreateCommentData = {
+          content: newComment.trim(),
+          commentType: 'media',
+          media: selectedFiles
+        };
+        await addCommentWithMedia(postId, commentData);
+      } else {
+        // Use standard comment
+        await addComment(postId, newComment.trim());
+      }
+
       setNewComment('');
+      setSelectedFiles([]);
+      setShowMediaUpload(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+
+      // Refresh comments if we're managing them locally
+      if (!comments && hasLoadedRef.current) {
+        try {
+          const updatedComments = await loadComments(postId);
+          setLoadedComments(updatedComments);
+        } catch (error) {
+          console.error('Failed to refresh comments:', error);
+        }
+      }
     } catch (error) {
       console.error('Failed to add comment:', error);
     } finally {
@@ -45,6 +134,32 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ postId, comments }) =
     setReplyingTo(commentId);
   }, []);
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setSelectedFiles(prevFiles => [...prevFiles, ...files].slice(0, 5)); // Max 5 files
+  };
+
+  const removeFile = (index: number) => {
+    setSelectedFiles(prevFiles => {
+      // Clean up object URL to prevent memory leaks
+      const fileToRemove = prevFiles[index];
+      if (fileToRemove) {
+        const objectUrl = URL.createObjectURL(fileToRemove);
+        URL.revokeObjectURL(objectUrl);
+      }
+      return prevFiles.filter((_, i) => i !== index);
+    });
+  };
+
+  const handleMediaButtonClick = () => {
+    if (showMediaUpload) {
+      setShowMediaUpload(false);
+      setSelectedFiles([]);
+    } else {
+      setShowMediaUpload(true);
+    }
+  };
+
   if (!user) {
     return (
       <div className="text-center py-4 text-gray-500">
@@ -55,8 +170,9 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ postId, comments }) =
 
   return (
     <div className="space-y-4">
-      {/* New Comment Form */}
-      <form onSubmit={handleSubmitComment} className="flex space-x-3">
+      {/* New Comment Form - only show when showCommentForm is true */}
+      {showCommentForm && (
+        <form onSubmit={handleSubmitComment} className="flex space-x-3">
         <div className="flex-shrink-0">
           {getAvatarUrl(user.profileImage) ? (
             <img
@@ -87,13 +203,143 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ postId, comments }) =
                 target.style.height = target.scrollHeight + 'px';
               }}
             />
+
+            {/* Media Upload Section */}
+            {showMediaUpload && (
+              <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="flex flex-col space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-medium text-gray-700">Add Media</h4>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="text-sm text-blue-600 hover:text-blue-800"
+                    >
+                      Choose Files
+                    </button>
+                  </div>
+
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept="image/*,video/*,.pdf,.txt"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
+
+                  {selectedFiles.length > 0 && (
+                    <div className="space-y-2">
+                      {selectedFiles.map((file, index) => {
+                        const isImage = file.type.startsWith('image/');
+                        const isVideo = file.type.startsWith('video/');
+                        const fileUrl = URL.createObjectURL(file);
+
+                        return (
+                          <div key={index} className="bg-white rounded border overflow-hidden">
+                            {isImage ? (
+                              <div className="relative">
+                                <img
+                                  src={fileUrl}
+                                  alt={file.name}
+                                  className="w-full h-auto max-h-48 object-contain bg-gray-50"
+                                  onLoad={() => URL.revokeObjectURL(fileUrl)}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => removeFile(index)}
+                                  className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors"
+                                  title="Remove image"
+                                >
+                                  ×
+                                </button>
+                                <div className="p-2 bg-gray-50 border-t">
+                                  <p className="text-sm text-gray-700 truncate">{file.name}</p>
+                                  <p className="text-xs text-gray-500">
+                                    {(file.size / 1024 / 1024).toFixed(1)} MB
+                                  </p>
+                                </div>
+                              </div>
+                            ) : isVideo ? (
+                              <div className="relative">
+                                <video
+                                  src={fileUrl}
+                                  className="w-full h-auto max-h-48 object-contain bg-gray-50"
+                                  controls={false}
+                                  preload="metadata"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => removeFile(index)}
+                                  className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors"
+                                  title="Remove video"
+                                >
+                                  ×
+                                </button>
+                                <div className="p-2 bg-gray-50 border-t">
+                                  <p className="text-sm text-gray-700 truncate">{file.name}</p>
+                                  <p className="text-xs text-gray-500">
+                                    {(file.size / 1024 / 1024).toFixed(1)} MB
+                                  </p>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-between p-3">
+                                <div className="flex items-center space-x-3">
+                                  <div className="flex-shrink-0">
+                                    <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm text-gray-700 truncate">{file.name}</p>
+                                    <p className="text-xs text-gray-500">
+                                      {(file.size / 1024 / 1024).toFixed(1)} MB
+                                    </p>
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => removeFile(index)}
+                                  className="text-red-500 hover:text-red-700 text-sm font-medium"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  <p className="text-xs text-gray-500">
+                    Supports images, videos, PDFs, and text files. Max 5 files, 10MB each.
+                  </p>
+                </div>
+              </div>
+            )}
+
             <div className="flex justify-between items-center mt-2">
-              <span className="text-xs text-gray-400">{newComment.length}/1000</span>
+              <div className="flex items-center space-x-3">
+                <span className="text-xs text-gray-400">{newComment.length}/1000</span>
+                <button
+                  type="button"
+                  onClick={handleMediaButtonClick}
+                  className={`text-sm font-medium transition-colors ${
+                    showMediaUpload
+                      ? 'text-blue-600 hover:text-blue-800'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  📎 {showMediaUpload ? 'Hide Media' : 'Add Media'}
+                </button>
+              </div>
               <button
                 type="submit"
-                disabled={!newComment.trim() || isSubmitting}
+                disabled={(!newComment.trim() && selectedFiles.length === 0) || isSubmitting}
                 className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                  newComment.trim() && !isSubmitting
+                  (newComment.trim() || selectedFiles.length > 0) && !isSubmitting
                     ? 'bg-blue-500 text-white hover:bg-blue-600'
                     : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                 }`}
@@ -103,26 +349,55 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ postId, comments }) =
             </div>
           </div>
         </div>
-      </form>
+        </form>
+      )}
 
       {/* Comments List */}
       <div className="space-y-4">
-        {comments.length === 0 ? (
+        {isLoadingComments ? (
+          <div className="text-center py-6 text-gray-500">
+            <svg className="animate-spin mx-auto h-8 w-8 text-gray-300 mb-2" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p className="text-sm">Loading comments...</p>
+          </div>
+        ) : !displayComments || displayComments.length === 0 ? (
           <div className="text-center py-6 text-gray-500">
             <svg className="mx-auto h-8 w-8 text-gray-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-3.582 8-8 8a9.959 9.959 0 01-4.906-1.274A6 6 0 013 16.5c0-3.315 2.686-6 6-6 1.316 0 2.485.42 3.456 1.138a8.958 8.958 0 015.544 1.362z" />
             </svg>
-            <p className="text-sm">No comments yet. Be the first to comment!</p>
+            <p className="text-sm mb-3">No comments yet. Be the first to comment!</p>
+            {!showCommentForm && (
+              <button
+                onClick={() => setShowCommentForm(true)}
+                className="px-4 py-2 bg-blue-500 text-white rounded-md text-sm font-medium hover:bg-blue-600 transition-colors"
+              >
+                Write a Comment
+              </button>
+            )}
           </div>
         ) : (
-          comments.map((comment) => (
-            <CommentItem
-              key={comment.id}
-              comment={comment}
-              postId={postId}
-              onReply={handleReply}
-            />
-          ))
+          <>
+            {displayComments.map((comment) => (
+              <CommentItem
+                key={comment.id}
+                comment={comment}
+                postId={postId}
+                onReply={handleReply}
+              />
+            ))}
+            {!showCommentForm && (
+              <div className="text-center py-4">
+                <button
+                  onClick={() => setShowCommentForm(true)}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-md text-sm font-medium hover:bg-blue-600 transition-colors"
+                >
+                  Write a Comment
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
@@ -314,7 +589,78 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, postId, isReply = fa
               </div>
             </div>
           ) : (
-            <p className="text-sm text-gray-900 whitespace-pre-wrap">{comment.content}</p>
+            <>
+              <p className="text-sm text-gray-900 whitespace-pre-wrap">{comment.content}</p>
+
+              {/* Comment Media Display */}
+              {comment.media && comment.media.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {comment.media.map((mediaFile, index) => {
+                    const isImage = () => {
+                      return mediaFile.fileType === 'image' ||
+                             (mediaFile.mimeType || '').startsWith('image/');
+                    };
+
+                    const isVideo = () => {
+                      return mediaFile.fileType === 'video' ||
+                             (mediaFile.mimeType || '').startsWith('video/');
+                    };
+
+                    const mediaUrl = getMediaUrl(mediaFile.fileUrl);
+
+                    return (
+                      <div key={mediaFile.id || index} className="border border-gray-200 rounded-lg overflow-hidden">
+                        {isImage() ? (
+                          <img
+                            src={mediaUrl || ''}
+                            alt={mediaFile.fileName}
+                            className="w-full h-auto max-h-80 object-contain bg-gray-50"
+                            style={{ maxWidth: '100%', height: 'auto' }}
+                            loading="lazy"
+                          />
+                        ) : isVideo() ? (
+                          <video
+                            controls
+                            className="w-full h-auto max-h-80 object-contain bg-gray-50"
+                            style={{ maxWidth: '100%', height: 'auto' }}
+                            preload="metadata"
+                          >
+                            <source src={mediaUrl || ''} type={mediaFile.mimeType} />
+                            Your browser does not support the video tag.
+                          </video>
+                        ) : (
+                          <div className="p-3 bg-gray-50 flex items-center space-x-3">
+                            <div className="flex-shrink-0">
+                              <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900 truncate">
+                                {mediaFile.fileName}
+                              </p>
+                              {mediaFile.fileSize && (
+                                <p className="text-xs text-gray-500">
+                                  {(mediaFile.fileSize / 1024 / 1024).toFixed(1)} MB
+                                </p>
+                              )}
+                            </div>
+                            <a
+                              href={mediaUrl || ''}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                            >
+                              Download
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
           )}
         </div>
 

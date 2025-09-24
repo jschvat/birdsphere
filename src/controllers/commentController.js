@@ -128,13 +128,21 @@ exports.getPostComments = async (req, res) => {
       includeReplies: false
     });
 
-    // Add author information to comments and replies
+    // Add author information and media to comments and replies
     const commentsWithAuthors = await Promise.all(comments.map(async (comment) => {
       const author = await User.findById(comment.author_id);
+
+      // Load media for this comment using the working findByIdWithMedia pattern
+      const commentWithMedia = await Comment.findByIdWithMedia(comment.id);
+      const media = commentWithMedia ? commentWithMedia.media : [];
 
       // Process replies
       const repliesWithAuthors = await Promise.all((comment.replies || []).map(async (reply) => {
         const replyAuthor = await User.findById(reply.author_id);
+        // Load media for reply too
+        const replyWithMedia = await Comment.findByIdWithMedia(reply.id);
+        const replyMedia = replyWithMedia ? replyWithMedia.media : [];
+
         return {
           ...reply,
           author: {
@@ -144,7 +152,8 @@ exports.getPostComments = async (req, res) => {
             lastName: replyAuthor.last_name,
             profileImage: replyAuthor.profile_image,
             isVerified: replyAuthor.is_verified
-          }
+          },
+          media: replyMedia
         };
       }));
 
@@ -158,7 +167,8 @@ exports.getPostComments = async (req, res) => {
           profileImage: author.profile_image,
           isVerified: author.is_verified
         },
-        replies: repliesWithAuthors
+        replies: repliesWithAuthors,
+        media: media
       };
     }));
 
@@ -445,6 +455,428 @@ exports.getCommentReactions = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch comment reactions',
+      error: error.message
+    });
+  }
+};
+
+// ====================================================================
+// PHASE 1 ENHANCEMENT: MEDIA-ENABLED COMMENT METHODS
+// ====================================================================
+
+/**
+ * Create a comment with media support (Phase 1 Enhancement)
+ */
+exports.createCommentWithMedia = async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const { postId } = req.params;
+    const { content, parentCommentId, commentType = 'standard' } = req.body;
+
+    // Verify post exists
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message: 'Post not found'
+      });
+    }
+
+    // Verify parent comment exists if provided
+    if (parentCommentId) {
+      const parentComment = await Comment.findById(parentCommentId);
+      if (!parentComment || parentComment.post_id !== postId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid parent comment'
+        });
+      }
+    }
+
+    // Process uploaded media files
+    const mediaFiles = [];
+    if (req.files && req.files.length > 0) {
+      req.files.forEach(file => {
+        mediaFiles.push({
+          fileType: file.mimetype.startsWith('image/') ? 'image' :
+                   file.mimetype.startsWith('video/') ? 'video' :
+                   file.mimetype.startsWith('audio/') ? 'audio' : 'document',
+          fileUrl: `/uploads/comments/${file.filename}`,
+          fileName: file.originalname,
+          fileSize: file.size,
+          mimeType: file.mimetype,
+          width: file.metadata?.width,
+          height: file.metadata?.height,
+          duration: file.metadata?.duration,
+          thumbnailUrl: file.metadata?.thumbnail
+        });
+      });
+    }
+
+    // Create comment with media
+    const comment = await Comment.createWithMedia({
+      postId,
+      authorId: req.user.id,
+      content,
+      parentCommentId,
+      commentType: mediaFiles.length > 0 ? 'media' : commentType,
+      mediaFiles
+    });
+
+    // Update post comment count (only for top-level comments)
+    if (!parentCommentId) {
+      await Post.incrementCommentCount(postId);
+    }
+
+    // Get author information for response
+    const author = await User.findById(req.user.id);
+
+    res.status(201).json({
+      success: true,
+      message: 'Comment created successfully',
+      data: {
+        ...comment,
+        author: {
+          id: author.id,
+          username: author.username,
+          firstName: author.first_name,
+          lastName: author.last_name,
+          profileImage: author.profile_image,
+          isVerified: author.is_verified
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Failed to create comment with media:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create comment',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get comments with media for a post (Phase 1 Enhancement)
+ */
+exports.getPostCommentsWithMedia = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const {
+      page = 1,
+      limit = 20,
+      sort = 'newest'
+    } = req.query;
+
+    // Verify post exists
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message: 'Post not found'
+      });
+    }
+
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+
+    // Get comments with media using the enhanced model method
+    const comments = await Comment.getCommentsWithMedia(postId, {
+      limit: parseInt(limit),
+      offset,
+      sort
+    });
+
+    // Add author information to comments
+    const commentsWithAuthors = await Promise.all(comments.map(async (comment) => {
+      const author = await User.findById(comment.author_id);
+      return {
+        ...comment,
+        author: {
+          id: author.id,
+          username: author.username,
+          firstName: author.first_name,
+          lastName: author.last_name,
+          profileImage: author.profile_image,
+          isVerified: author.is_verified
+        }
+      };
+    }));
+
+    // Add user reaction data if authenticated
+    if (req.user && commentsWithAuthors.length > 0) {
+      for (const comment of commentsWithAuthors) {
+        const userReaction = await Reaction.getUserReaction(req.user.id, comment.id, 'comment');
+        comment.userReaction = userReaction ? userReaction.reaction_type : null;
+      }
+    }
+
+    res.json({
+      success: true,
+      data: commentsWithAuthors,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        hasNext: comments.length === parseInt(limit)
+      },
+      meta: {
+        postId,
+        enhanced: true, // Indicates this is the enhanced endpoint
+        mediaSupport: true
+      }
+    });
+
+  } catch (error) {
+    console.error('Failed to fetch comments with media:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch comments',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get comment thread with media support (Phase 1 Enhancement)
+ */
+exports.getCommentThreadWithMedia = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const {
+      page = 1,
+      limit = 20,
+      sort = 'newest',
+      replyLimit = 3
+    } = req.query;
+
+    // Verify post exists
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message: 'Post not found'
+      });
+    }
+
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+
+    // Get comment thread with media
+    const comments = await Comment.getCommentThreadWithMedia(postId, {
+      limit: parseInt(limit),
+      offset,
+      sort,
+      replyLimit: parseInt(replyLimit)
+    });
+
+    // Add author information to comments and replies
+    const commentsWithAuthors = await Promise.all(comments.map(async (comment) => {
+      const author = await User.findById(comment.author_id);
+
+      // Process replies with author info
+      const repliesWithAuthors = await Promise.all((comment.replies || []).map(async (reply) => {
+        const replyAuthor = await User.findById(reply.author_id);
+        return {
+          ...reply,
+          author: {
+            id: replyAuthor.id,
+            username: replyAuthor.username,
+            firstName: replyAuthor.first_name,
+            lastName: replyAuthor.last_name,
+            profileImage: replyAuthor.profile_image,
+            isVerified: replyAuthor.is_verified
+          }
+        };
+      }));
+
+      return {
+        ...comment,
+        author: {
+          id: author.id,
+          username: author.username,
+          firstName: author.first_name,
+          lastName: author.last_name,
+          profileImage: author.profile_image,
+          isVerified: author.is_verified
+        },
+        replies: repliesWithAuthors
+      };
+    }));
+
+    // Add user reaction data if authenticated
+    if (req.user && commentsWithAuthors.length > 0) {
+      for (const comment of commentsWithAuthors) {
+        const userReaction = await Reaction.getUserReaction(req.user.id, comment.id, 'comment');
+        comment.userReaction = userReaction ? userReaction.reaction_type : null;
+
+        // Add user reactions for replies too
+        for (const reply of comment.replies || []) {
+          const replyUserReaction = await Reaction.getUserReaction(req.user.id, reply.id, 'comment');
+          reply.userReaction = replyUserReaction ? replyUserReaction.reaction_type : null;
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      data: commentsWithAuthors,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        hasNext: comments.length === parseInt(limit)
+      },
+      meta: {
+        postId,
+        enhanced: true,
+        mediaSupport: true,
+        threadView: true,
+        replyLimit: parseInt(replyLimit)
+      }
+    });
+
+  } catch (error) {
+    console.error('Failed to fetch comment thread with media:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch comment thread',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Add media to an existing comment (Phase 1 Enhancement)
+ */
+exports.addMediaToComment = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Find the comment
+    const comment = await Comment.findById(id);
+    if (!comment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Comment not found'
+      });
+    }
+
+    // Check ownership
+    if (comment.author_id !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied'
+      });
+    }
+
+    // Process uploaded media files
+    const mediaFiles = [];
+    if (req.files && req.files.length > 0) {
+      req.files.forEach(file => {
+        mediaFiles.push({
+          fileType: file.mimetype.startsWith('image/') ? 'image' :
+                   file.mimetype.startsWith('video/') ? 'video' :
+                   file.mimetype.startsWith('audio/') ? 'audio' : 'document',
+          fileUrl: `/uploads/comments/${file.filename}`,
+          fileName: file.originalname,
+          fileSize: file.size,
+          mimeType: file.mimetype,
+          width: file.metadata?.width,
+          height: file.metadata?.height,
+          duration: file.metadata?.duration,
+          thumbnailUrl: file.metadata?.thumbnail
+        });
+      });
+    }
+
+    if (mediaFiles.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No media files provided'
+      });
+    }
+
+    // Add media to comment
+    const addedMedia = await Comment.addMedia(id, mediaFiles);
+
+    // Update comment type to media if it wasn't already
+    if (comment.comment_type === 'standard') {
+      await Comment.update(id, { comment_type: 'media' });
+    }
+
+    res.json({
+      success: true,
+      message: 'Media added to comment successfully',
+      data: {
+        commentId: id,
+        addedMedia: addedMedia.length,
+        media: addedMedia
+      }
+    });
+
+  } catch (error) {
+    console.error('Failed to add media to comment:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to add media to comment',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Delete media from a comment (Phase 1 Enhancement)
+ */
+exports.deleteCommentMedia = async (req, res) => {
+  try {
+    const { id, mediaId } = req.params;
+
+    // Find the comment
+    const comment = await Comment.findById(id);
+    if (!comment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Comment not found'
+      });
+    }
+
+    // Check ownership
+    if (comment.author_id !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied'
+      });
+    }
+
+    // Delete the media
+    const deletedMedia = await Comment.deleteMedia(id, mediaId);
+    if (!deletedMedia) {
+      return res.status(404).json({
+        success: false,
+        message: 'Media not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Media deleted successfully',
+      data: {
+        commentId: id,
+        deletedMediaId: mediaId
+      }
+    });
+
+  } catch (error) {
+    console.error('Failed to delete comment media:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete media',
       error: error.message
     });
   }

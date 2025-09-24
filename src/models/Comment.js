@@ -5,15 +5,16 @@ class Comment {
     postId,
     authorId,
     content,
-    parentCommentId = null
+    parentCommentId = null,
+    commentType = 'standard'
   }) {
     const sql = `
-      INSERT INTO comments (post_id, author_id, content, parent_comment_id)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO comments (post_id, author_id, content, parent_comment_id, comment_type)
+      VALUES ($1, $2, $3, $4, $5)
       RETURNING *
     `;
 
-    const values = [postId, authorId, content, parentCommentId];
+    const values = [postId, authorId, content, parentCommentId, commentType];
     const result = await query(sql, values);
 
     return result.rows[0];
@@ -359,6 +360,243 @@ class Comment {
       });
 
       comment.replies = replies;
+      comment.hasMoreReplies = comment.reply_count > replyLimit;
+    }
+
+    return comments;
+  }
+
+  // ====================================================================
+  // PHASE 1 ENHANCEMENT: MEDIA SUPPORT METHODS
+  // ====================================================================
+
+  static async addMedia(commentId, mediaArray) {
+    if (!mediaArray || mediaArray.length === 0) return [];
+
+    const values = [];
+    const placeholders = [];
+
+    mediaArray.forEach((media, index) => {
+      const offset = index * 10;
+      placeholders.push(`($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}, $${offset + 9}, $${offset + 10})`);
+
+      values.push(
+        commentId,
+        media.fileType || 'image',
+        media.fileUrl,
+        media.fileName,
+        media.fileSize || null,
+        media.mimeType || null,
+        media.width || null,
+        media.height || null,
+        media.duration || null,
+        media.thumbnailUrl || null
+      );
+    });
+
+    const sql = `
+      INSERT INTO comment_media (comment_id, file_type, file_url, file_name, file_size, mime_type, width, height, duration, thumbnail_url)
+      VALUES ${placeholders.join(', ')}
+      RETURNING *
+    `;
+
+    const result = await query(sql, values);
+    return result.rows;
+  }
+
+  static async getCommentsWithMedia(postId, options = {}) {
+    const {
+      limit = 20,
+      offset = 0,
+      sort = 'newest',
+      includeReplies = false
+    } = options;
+
+    let whereConditions = ['c.post_id = $1'];
+    let values = [postId];
+    let paramCount = 2;
+
+    // Only get top-level comments unless includeReplies is true
+    if (!includeReplies) {
+      whereConditions.push('c.parent_comment_id IS NULL');
+    }
+
+    // Build ORDER BY
+    let orderBy;
+    switch (sort) {
+      case 'oldest':
+        orderBy = 'c.created_at ASC';
+        break;
+      case 'popular':
+        orderBy = 'c.reaction_count DESC, c.created_at DESC';
+        break;
+      case 'newest':
+      default:
+        orderBy = 'c.created_at DESC';
+        break;
+    }
+
+    const whereClause = whereConditions.join(' AND ');
+
+    const sql = `
+      SELECT c.*,
+             (SELECT COUNT(*) FROM comments WHERE parent_comment_id = c.id) as reply_count,
+             COALESCE(json_agg(
+               json_build_object(
+                 'id', cm.id,
+                 'fileType', cm.file_type,
+                 'fileUrl', cm.file_url,
+                 'fileName', cm.file_name,
+                 'fileSize', cm.file_size,
+                 'mimeType', cm.mime_type,
+                 'width', cm.width,
+                 'height', cm.height,
+                 'duration', cm.duration,
+                 'thumbnailUrl', cm.thumbnail_url,
+                 'displayOrder', cm.display_order
+               ) ORDER BY cm.display_order
+             ) FILTER (WHERE cm.id IS NOT NULL), '[]'::json)::jsonb as media
+      FROM comments c
+      LEFT JOIN comment_media cm ON c.id = cm.comment_id
+      WHERE ${whereClause}
+      GROUP BY c.id
+      ORDER BY ${orderBy}
+      LIMIT $${paramCount++} OFFSET $${paramCount++}
+    `;
+
+    values.push(limit, offset);
+
+    const result = await query(sql, values);
+    return result.rows;
+  }
+
+  static async findByIdWithMedia(id) {
+    const sql = `
+      SELECT c.*,
+             COALESCE(json_agg(
+               json_build_object(
+                 'id', cm.id,
+                 'fileType', cm.file_type,
+                 'fileUrl', cm.file_url,
+                 'fileName', cm.file_name,
+                 'fileSize', cm.file_size,
+                 'mimeType', cm.mime_type,
+                 'width', cm.width,
+                 'height', cm.height,
+                 'duration', cm.duration,
+                 'thumbnailUrl', cm.thumbnail_url,
+                 'displayOrder', cm.display_order
+               ) ORDER BY cm.display_order
+             ) FILTER (WHERE cm.id IS NOT NULL), '[]'::json)::jsonb as media
+      FROM comments c
+      LEFT JOIN comment_media cm ON c.id = cm.comment_id
+      WHERE c.id = $1
+      GROUP BY c.id
+    `;
+
+    const result = await query(sql, [id]);
+    return result.rows[0];
+  }
+
+  static async updateMediaAttachments(commentId, mediaAttachments) {
+    const sql = `
+      UPDATE comments
+      SET media_attachments = $1,
+          has_media = $2
+      WHERE id = $3
+      RETURNING *
+    `;
+
+    const hasMedia = mediaAttachments && mediaAttachments.length > 0;
+    const result = await query(sql, [JSON.stringify(mediaAttachments), hasMedia, commentId]);
+    return result.rows[0];
+  }
+
+  static async deleteMedia(commentId, mediaId) {
+    const sql = `
+      DELETE FROM comment_media
+      WHERE comment_id = $1 AND id = $2
+      RETURNING *
+    `;
+
+    const result = await query(sql, [commentId, mediaId]);
+    return result.rows[0];
+  }
+
+  static async getMediaByComment(commentId) {
+    const sql = `
+      SELECT * FROM comment_media
+      WHERE comment_id = $1
+      ORDER BY display_order, created_at
+    `;
+
+    const result = await query(sql, [commentId]);
+    return result.rows;
+  }
+
+  static async createWithMedia({
+    postId,
+    authorId,
+    content,
+    parentCommentId = null,
+    commentType = 'standard',
+    mediaFiles = []
+  }) {
+    // Start transaction
+    await query('BEGIN');
+
+    try {
+      // Create the comment
+      const comment = await this.create({
+        postId,
+        authorId,
+        content,
+        parentCommentId,
+        commentType: mediaFiles.length > 0 ? 'media' : commentType
+      });
+
+      // Add media if provided
+      if (mediaFiles && mediaFiles.length > 0) {
+        await this.addMedia(comment.id, mediaFiles);
+
+        // Update comment to reflect media presence
+        await this.updateMediaAttachments(comment.id, mediaFiles);
+      }
+
+      await query('COMMIT');
+
+      // Return comment with media
+      return await this.findByIdWithMedia(comment.id);
+    } catch (error) {
+      await query('ROLLBACK');
+      throw error;
+    }
+  }
+
+  static async getCommentThreadWithMedia(postId, options = {}) {
+    const {
+      limit = 20,
+      offset = 0,
+      sort = 'newest',
+      replyLimit = 3
+    } = options;
+
+    // Get top-level comments with media
+    const comments = await this.getCommentsWithMedia(postId, {
+      limit,
+      offset,
+      sort
+    });
+
+    // For each comment, get limited replies with media
+    for (const comment of comments) {
+      const replies = await this.getCommentsWithMedia(postId, {
+        limit: replyLimit,
+        sort: 'oldest'
+      });
+
+      // Filter replies to only those that belong to this comment
+      comment.replies = replies.filter(reply => reply.parent_comment_id === comment.id);
       comment.hasMoreReplies = comment.reply_count > replyLimit;
     }
 
