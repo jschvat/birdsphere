@@ -62,6 +62,7 @@ import { useAuth } from '../../context/AuthContext';
 import { usePosts } from '../../contexts/PostsContext';
 import { Comment, CreateCommentData } from '../../types/index';
 import { getAvatarUrl, getMediaUrl } from '../../utils/avatarUtils';
+import MediaDisplay from '../Media/MediaDisplay';
 
 interface CommentsSectionProps {
   postId: string;
@@ -665,70 +666,18 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, postId, isReply = fa
 
               {/* Comment Media Display */}
               {comment.media && comment.media.length > 0 && (
-                <div className="mt-3 space-y-2">
-                  {comment.media.map((mediaFile, index) => {
-                    const isImage = () => {
-                      return mediaFile.fileType === 'image' ||
-                             (mediaFile.mimeType || '').startsWith('image/');
-                    };
-
-                    const isVideo = () => {
-                      return mediaFile.fileType === 'video' ||
-                             (mediaFile.mimeType || '').startsWith('video/');
-                    };
-
-                    const mediaUrl = getMediaUrl(mediaFile.fileUrl);
-
-                    return (
-                      <div key={mediaFile.id || index} className="border border-gray-200 rounded-lg overflow-hidden">
-                        {isImage() ? (
-                          <img
-                            src={mediaUrl || ''}
-                            alt={mediaFile.fileName}
-                            className="w-full h-auto max-h-80 object-contain bg-gray-50"
-                            style={{ maxWidth: '100%', height: 'auto' }}
-                            loading="lazy"
-                          />
-                        ) : isVideo() ? (
-                          <video
-                            controls
-                            className="w-full h-auto max-h-80 object-contain bg-gray-50"
-                            style={{ maxWidth: '100%', height: 'auto' }}
-                            preload="metadata"
-                          >
-                            <source src={mediaUrl || ''} type={mediaFile.mimeType} />
-                            Your browser does not support the video tag.
-                          </video>
-                        ) : (
-                          <div className="p-3 bg-gray-50 flex items-center space-x-3">
-                            <div className="flex-shrink-0">
-                              <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                              </svg>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-900 truncate">
-                                {mediaFile.fileName}
-                              </p>
-                              {mediaFile.fileSize && (
-                                <p className="text-xs text-gray-500">
-                                  {(mediaFile.fileSize / 1024 / 1024).toFixed(1)} MB
-                                </p>
-                              )}
-                            </div>
-                            <a
-                              href={mediaUrl || ''}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                            >
-                              Download
-                            </a>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                <div className="mt-3">
+                  <MediaDisplay
+                    media={comment.media.map(mediaFile => ({
+                      ...mediaFile,
+                      url: getMediaUrl(mediaFile.fileUrl) || undefined,
+                      category: mediaFile.fileType,
+                      originalName: mediaFile.fileName,
+                      size: mediaFile.fileSize,
+                      mimetype: mediaFile.mimeType
+                    }))}
+                    maxHeight="300px"
+                  />
                 </div>
               )}
             </>

@@ -52,7 +52,7 @@
  * - File size and metadata display utilities
  * - Download service integration for non-preview files
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MediaFile } from '../../types/index';
 
 interface MediaDisplayProps {
@@ -63,15 +63,6 @@ interface MediaDisplayProps {
 const MediaDisplay: React.FC<MediaDisplayProps> = ({ media, maxHeight = '400px' }) => {
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
   const [showLightbox, setShowLightbox] = useState(false);
-
-  if (!media || media.length === 0) {
-    return null;
-  }
-
-  const images = media.filter(m => (m.category || m.fileType) === 'image');
-  const videos = media.filter(m => (m.category || m.fileType) === 'video');
-  const documents = media.filter(m => (m.category || m.fileType) === 'document');
-  const others = media.filter(m => !['image', 'video', 'document'].includes(m.category || m.fileType || ''));
 
   const openLightbox = (index: number) => {
     setSelectedImageIndex(index);
@@ -84,6 +75,8 @@ const MediaDisplay: React.FC<MediaDisplayProps> = ({ media, maxHeight = '400px' 
   };
 
   const nextImage = () => {
+    if (!media || media.length === 0) return;
+    const images = media.filter(m => (m.category || m.fileType) === 'image');
     if (selectedImageIndex !== null && selectedImageIndex < images.length - 1) {
       setSelectedImageIndex(selectedImageIndex + 1);
     }
@@ -94,6 +87,39 @@ const MediaDisplay: React.FC<MediaDisplayProps> = ({ media, maxHeight = '400px' 
       setSelectedImageIndex(selectedImageIndex - 1);
     }
   };
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (showLightbox) {
+        switch (event.key) {
+          case 'Escape':
+            closeLightbox();
+            break;
+          case 'ArrowLeft':
+            prevImage();
+            break;
+          case 'ArrowRight':
+            nextImage();
+            break;
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showLightbox, selectedImageIndex]);
+
+  if (!media || media.length === 0) {
+    return null;
+  }
+
+  const images = media.filter(m => (m.category || m.fileType) === 'image');
+  const videos = media.filter(m => (m.category || m.fileType) === 'video');
+  const documents = media.filter(m => (m.category || m.fileType) === 'document');
+  const others = media.filter(m => !['image', 'video', 'document'].includes(m.category || m.fileType || ''));
+
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -222,12 +248,15 @@ const MediaDisplay: React.FC<MediaDisplayProps> = ({ media, maxHeight = '400px' 
 
       {/* Image Lightbox */}
       {showLightbox && selectedImageIndex !== null && (
-        <div className="fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center p-4">
-          <div className="relative max-w-4xl max-h-full">
+        <div
+          className="fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center p-2 sm:p-4"
+          onClick={closeLightbox}
+        >
+          <div className="relative w-full h-full flex items-center justify-center">
             {/* Close button */}
             <button
               onClick={closeLightbox}
-              className="absolute top-4 right-4 z-10 p-2 bg-black bg-opacity-50 text-white rounded-full hover:bg-opacity-70 transition-colors"
+              className="absolute top-2 right-2 sm:top-4 sm:right-4 z-10 p-1.5 sm:p-2 bg-black bg-opacity-50 text-white rounded-full hover:bg-opacity-70 transition-colors"
             >
               <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -240,7 +269,7 @@ const MediaDisplay: React.FC<MediaDisplayProps> = ({ media, maxHeight = '400px' 
                 <button
                   onClick={prevImage}
                   disabled={selectedImageIndex === 0}
-                  className="absolute left-4 top-1/2 transform -translate-y-1/2 p-2 bg-black bg-opacity-50 text-white rounded-full hover:bg-opacity-70 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  className="absolute left-2 sm:left-4 top-1/2 transform -translate-y-1/2 p-1.5 sm:p-2 bg-black bg-opacity-50 text-white rounded-full hover:bg-opacity-70 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -249,7 +278,7 @@ const MediaDisplay: React.FC<MediaDisplayProps> = ({ media, maxHeight = '400px' 
                 <button
                   onClick={nextImage}
                   disabled={selectedImageIndex === images.length - 1}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 p-2 bg-black bg-opacity-50 text-white rounded-full hover:bg-opacity-70 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  className="absolute right-2 sm:right-4 top-1/2 transform -translate-y-1/2 p-1.5 sm:p-2 bg-black bg-opacity-50 text-white rounded-full hover:bg-opacity-70 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -262,12 +291,17 @@ const MediaDisplay: React.FC<MediaDisplayProps> = ({ media, maxHeight = '400px' 
             <img
               src={images[selectedImageIndex].url || images[selectedImageIndex].fileUrl || ''}
               alt={images[selectedImageIndex].originalName || images[selectedImageIndex].fileName || ''}
-              className="max-w-full max-h-full object-contain"
+              className="max-w-full max-h-full object-contain w-auto h-auto"
+              style={{
+                maxWidth: 'calc(100vw - 2rem)',
+                maxHeight: 'calc(100vh - 8rem)',
+              }}
+              onClick={(e) => e.stopPropagation()}
             />
 
             {/* Image info */}
-            <div className="absolute bottom-4 left-4 right-4 bg-black bg-opacity-50 text-white p-3 rounded">
-              <p className="text-sm font-medium">{images[selectedImageIndex].originalName || images[selectedImageIndex].fileName}</p>
+            <div className="absolute bottom-2 left-2 right-2 sm:bottom-4 sm:left-4 sm:right-4 bg-black bg-opacity-50 text-white p-2 sm:p-3 rounded">
+              <p className="text-xs sm:text-sm font-medium truncate">{images[selectedImageIndex].originalName || images[selectedImageIndex].fileName}</p>
               <p className="text-xs opacity-75">
                 {selectedImageIndex + 1} of {images.length} • {formatFileSize(images[selectedImageIndex].size || images[selectedImageIndex].fileSize || 0)}
               </p>
