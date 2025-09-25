@@ -294,7 +294,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
                 onClick={toggleComments}
                 className="hover:text-blue-600 hover:underline cursor-pointer transition-colors"
               >
-                {post.commentCount} comment{post.commentCount === 1 ? '' : 's'}
+                {post.commentCount} repl{post.commentCount === 1 ? 'y' : 'ies'}
               </button>
             )}
             {post.shareCount > 0 && (
@@ -344,7 +344,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
-              <span>Comment</span>
+              <span>Reply</span>
             </button>
 
             {/* Share Button */}

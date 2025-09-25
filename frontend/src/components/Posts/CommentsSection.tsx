@@ -265,7 +265,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ postId, comments, onT
             <textarea
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
-              placeholder="Write a comment..."
+              placeholder="Write a reply..."
               className="w-full resize-none border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               rows={1}
               maxLength={1000}
@@ -416,7 +416,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ postId, comments, onT
                     : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                 }`}
               >
-                {isSubmitting ? 'Posting...' : 'Comment'}
+                {isSubmitting ? 'Posting...' : 'Reply'}
               </button>
             </div>
           </div>
@@ -532,7 +532,7 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, postId, isReply = fa
   };
 
   const handleDelete = async () => {
-    if (!window.confirm('Are you sure you want to delete this comment?')) {
+    if (!window.confirm('Are you sure you want to delete this reply?')) {
       return;
     }
 
@@ -550,8 +550,7 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, postId, isReply = fa
 
     setIsSubmittingReply(true);
     try {
-      // In a real implementation, you'd pass the parent comment ID
-      await addComment(postId, replyContent.trim());
+      await addComment(postId, replyContent.trim(), comment.id);
       setReplyContent('');
       setIsReplying(false);
     } catch (error) {
@@ -604,7 +603,7 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, postId, isReply = fa
                 <button
                   onClick={handleEdit}
                   className="text-gray-400 hover:text-blue-500 transition-colors"
-                  title={isEditing ? 'Save changes' : 'Edit comment'}
+                  title={isEditing ? 'Save changes' : 'Edit reply'}
                 >
                   {isEditing ? (
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -619,7 +618,7 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, postId, isReply = fa
                 <button
                   onClick={handleDelete}
                   className="text-gray-400 hover:text-red-500 transition-colors"
-                  title="Delete comment"
+                  title="Delete reply"
                 >
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -705,12 +704,12 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, postId, isReply = fa
             Reply
           </button>
 
-          {comment.replyCount > 0 && (
+          {(comment.replyCount || parseInt(comment.reply_count || '0')) > 0 && (
             <button
               onClick={() => setShowReplies(!showReplies)}
               className="hover:text-blue-500 transition-colors"
             >
-              {showReplies ? 'Hide' : 'Show'} {comment.replyCount} repl{comment.replyCount === 1 ? 'y' : 'ies'}
+              {showReplies ? 'Hide' : 'Show'} {(comment.replyCount || parseInt(comment.reply_count || '0'))} repl{(comment.replyCount || parseInt(comment.reply_count || '0')) === 1 ? 'y' : 'ies'}
             </button>
           )}
         </div>

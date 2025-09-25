@@ -295,7 +295,7 @@ interface PostsContextValue extends PostsState {
   deletePost: (postId: string) => Promise<void>;
   addReaction: (postId: string, reactionType: string) => Promise<void>;
   removeReaction: (postId: string, reactionId: string) => Promise<void>;
-  addComment: (postId: string, content: string) => Promise<Comment>;
+  addComment: (postId: string, content: string, parentCommentId?: string) => Promise<Comment>;
   addCommentWithMedia: (postId: string, commentData: CreateCommentData) => Promise<Comment>;
   updateComment: (postId: string, commentId: string, content: string) => Promise<Comment>;
   deleteComment: (postId: string, commentId: string) => Promise<void>;
@@ -427,9 +427,13 @@ export const PostsProvider: React.FC<PostsProviderProps> = ({ children }) => {
     }
   }, [loadTimeline]);
 
-  const addComment = useCallback(async (postId: string, content: string): Promise<Comment> => {
+  const addComment = useCallback(async (postId: string, content: string, parentCommentId?: string): Promise<Comment> => {
     try {
-      const response = await api.post(`/posts/${postId}/comments`, { content });
+      const payload: { content: string; parentCommentId?: string } = { content };
+      if (parentCommentId) {
+        payload.parentCommentId = parentCommentId;
+      }
+      const response = await api.post(`/posts/${postId}/comments`, payload);
       const newComment = response.data.data;
       dispatch({ type: 'ADD_COMMENT', postId, comment: newComment });
       return newComment;

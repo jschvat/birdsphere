@@ -178,6 +178,7 @@ export interface Comment {
   reactionCounts?: { [key: string]: number };
   replies?: Comment[];
   replyCount: number;
+  reply_count?: string;
   isEdited?: boolean;
   isHidden?: boolean;
   createdAt: string;
