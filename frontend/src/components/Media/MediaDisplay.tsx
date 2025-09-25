@@ -1,3 +1,57 @@
+/**
+ * MediaDisplay Component
+ *
+ * Comprehensive multi-media display component with intelligent layout and lightbox functionality.
+ * Handles various file types including images, videos, documents, and archives with adaptive grid layouts.
+ *
+ * Features:
+ * - Smart grid layouts (1-4 images with adaptive positioning)
+ * - Full-screen lightbox with image navigation and zoom
+ * - Multi-media type support (images, videos, documents, archives)
+ * - File type categorization and icon generation
+ * - Video player controls with thumbnail preview
+ * - Document preview with download functionality
+ * - File size formatting and metadata display
+ * - Hover effects and smooth transitions
+ * - Responsive design for all screen sizes
+ *
+ * Architecture:
+ * - Functional component using React hooks for state management
+ * - Uses MediaFile type for consistent file data structure
+ * - Implements category-based rendering for different media types
+ * - Supports flexible media URLs from different data sources
+ * - Uses keyboard navigation for lightbox interactions
+ * - Optimized performance with conditional rendering
+ *
+ * Grid Layout Logic:
+ * - 1 image: Single full-width display
+ * - 2 images: Two-column grid layout
+ * - 3 images: Asymmetric layout with one large, two small
+ * - 4+ images: Grid with "+N" overlay for additional items
+ *
+ * Props:
+ * @param media - Array of MediaFile objects to display
+ * @param maxHeight - Maximum height constraint for media containers (default: '400px')
+ *
+ * State Management:
+ * - selectedImageIndex: Currently selected image for lightbox display
+ * - showLightbox: Boolean controlling lightbox visibility
+ * - Image navigation state for prev/next functionality
+ *
+ * Media Categories:
+ * - Images: JPEG, PNG, WebP, GIF with lightbox and grid display
+ * - Videos: MP4, WebM with native HTML5 video controls
+ * - Documents: PDF, Office files with download and preview
+ * - Archives: ZIP, RAR files with file manager display
+ * - Others: Generic files with download functionality
+ *
+ * Integration Points:
+ * - MediaFile type system for consistent data structure
+ * - File categorization service for type detection
+ * - URL handling for various media sources (posts, uploads)
+ * - File size and metadata display utilities
+ * - Download service integration for non-preview files
+ */
 import React, { useState } from 'react';
 import { MediaFile } from '../../types/index';
 

@@ -1,6 +1,43 @@
+/**
+ * Media Controller
+ * Handles file upload, processing, and management for posts and listings.
+ *
+ * Core Responsibilities:
+ * - Multi-file upload processing with validation
+ * - Media file metadata generation and storage
+ * - File type validation and security checks
+ * - Automatic cleanup on upload failures
+ * - File deletion and management
+ * - Media categorization and organization
+ *
+ * Key Features:
+ * - Multi-File Support: Batch upload processing with individual validation
+ * - Security Validation: File type, size, and content verification
+ * - Error Recovery: Automatic cleanup of failed uploads
+ * - Metadata Generation: Comprehensive file information and statistics
+ * - Storage Management: Organized file storage and retrieval
+ * - Performance Optimized: Efficient processing of large media files
+ *
+ * Integration Points:
+ * - Works with mediaService for file processing
+ * - Uses upload middleware for file handling
+ * - Supports both post and listing media
+ * - Integrates with storage and CDN systems
+ * - Provides endpoints for file management
+ */
 const mediaService = require('../services/mediaService');
 const { uploadPostFiles, processPostFiles, handleUploadError } = require('../middleware/upload');
 
+/**
+ * Upload Media for Posts
+ * Processes multiple file uploads with validation and metadata generation.
+ * Implements automatic cleanup on failures and comprehensive file validation.
+ *
+ * @param {Object} req - Express request object with uploaded files
+ * @param {Array} req.files - Array of uploaded file objects from multer
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} Upload results with file metadata and statistics
+ */
 const uploadMediaForPost = async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
@@ -57,6 +94,16 @@ const uploadMediaForPost = async (req, res) => {
   }
 };
 
+/**
+ * Get File Information
+ * Retrieves metadata and details for a specific uploaded file.
+ * Used for file verification and media display.
+ *
+ * @param {Object} req - Express request object
+ * @param {string} req.params.filename - Name of file to get info for
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} File metadata including URL and existence status
+ */
 const getFileInfo = async (req, res) => {
   try {
     const { filename } = req.params;
@@ -81,6 +128,16 @@ const getFileInfo = async (req, res) => {
   }
 };
 
+/**
+ * Delete Uploaded File
+ * Removes a specific file from storage with proper cleanup.
+ * Used for file management and storage optimization.
+ *
+ * @param {Object} req - Express request object
+ * @param {string} req.params.filename - Name of file to delete
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} Deletion confirmation or error status
+ */
 const deleteUploadedFile = async (req, res) => {
   try {
     const { filename } = req.params;

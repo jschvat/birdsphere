@@ -1,3 +1,47 @@
+/**
+ * ErrorBoundary Component
+ *
+ * React error boundary component that catches JavaScript errors in child component tree.
+ * Provides graceful error handling with user-friendly error displays and debugging tools.
+ *
+ * Features:
+ * - Catches and displays JavaScript errors in child components
+ * - Provides user-friendly error interface with recovery options
+ * - Development mode error details with stack traces
+ * - Custom fallback UI support for specific error scenarios
+ * - Automatic page refresh option for error recovery
+ * - Console logging for debugging and monitoring
+ * - Responsive design with consistent styling
+ *
+ * Architecture:
+ * - Class component implementing React's error boundary lifecycle methods
+ * - Uses getDerivedStateFromError for error state updates
+ * - Implements componentDidCatch for error logging and side effects
+ * - Supports custom fallback UI through props
+ * - Conditionally shows detailed error info in development mode
+ *
+ * Error Handling Flow:
+ * 1. Child component throws JavaScript error
+ * 2. getDerivedStateFromError updates component state
+ * 3. componentDidCatch logs error details for debugging
+ * 4. Component renders error UI instead of broken child tree
+ * 5. User can refresh page or see detailed error information
+ *
+ * Props:
+ * @param children - Child components to wrap with error boundary protection
+ * @param fallback - Optional custom error UI to display instead of default
+ *
+ * State:
+ * @param hasError - Boolean indicating if an error has occurred
+ * @param error - The caught error object with details
+ * @param errorInfo - React error info including component stack
+ *
+ * Integration Points:
+ * - Wraps application sections requiring error protection
+ * - Integrates with logging services for error monitoring
+ * - Provides fallback UI for critical application failures
+ * - Supports development debugging workflows
+ */
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 
 interface Props {

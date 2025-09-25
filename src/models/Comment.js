@@ -1,5 +1,99 @@
+/**
+ * Comment Data Model
+ *
+ * Advanced comment system with threading, media support, and comprehensive
+ * functionality for the BirdSphere social platform. Recently enhanced to support
+ * media attachments in comments with proper URL generation and display.
+ *
+ * Core Architecture:
+ * - PostgreSQL-based with hierarchical comment threading
+ * - Media attachment support via comment_media table
+ * - Full-text search capabilities with PostgreSQL indexing
+ * - Edit history tracking for comment modifications
+ * - Reaction system integration for comment engagement
+ * - Soft deletion and moderation support
+ *
+ * Database Schema:
+ * Primary Table: comments
+ * - Core: id, post_id, author_id, content, comment_type
+ * - Threading: parent_comment_id (null for top-level comments)
+ * - Engagement: reaction_count, reply_count, has_media
+ * - Moderation: is_edited, is_hidden, is_active
+ * - Timestamps: created_at, updated_at
+ *
+ * Related Tables:
+ * - comment_media: Media attachments (images, videos, documents)
+ * - comment_edit_history: Track content changes over time
+ * - comment_reactions: User reactions to comments
+ * - users: Author information and profiles
+ *
+ * Key Features:
+ * 1. **Threaded Conversations**: Unlimited nesting with parent-child relationships
+ * 2. **Rich Media Support**: Images, videos, files with metadata
+ * 3. **Edit History**: Complete audit trail of comment modifications
+ * 4. **Search & Discovery**: Full-text search across comment content
+ * 5. **Moderation Tools**: Hide, delete, and moderate inappropriate content
+ * 6. **Engagement Metrics**: Reaction counts, reply counts, view tracking
+ * 7. **Media Integration**: Recently enhanced for proper media display
+ *
+ * Recent Enhancements (Fixed Issues):
+ * - Enhanced comment loading with media support in controllers
+ * - Fixed broken PostgreSQL stored procedure get_comments_with_media
+ * - Implemented proper media URL generation for cross-origin access
+ * - Added comprehensive media attachment methods
+ * - Improved comment threading with media display
+ * - Fixed comment media display in frontend components
+ *
+ * Media Architecture:
+ * - Files stored in ./uploads/comments/ directory structure
+ * - URLs generated with BASE_URL for proper client access
+ * - Metadata tracking (dimensions, file sizes, MIME types)
+ * - Display order maintenance for consistent presentation
+ * - Thumbnail generation and storage for videos
+ *
+ * Threading System:
+ * - Top-level comments: parent_comment_id = null
+ * - Replies: parent_comment_id = parent comment UUID
+ * - Unlimited nesting depth supported
+ * - Reply count tracking for performance optimization
+ * - Efficient queries for comment trees and threads
+ *
+ * Search Capabilities:
+ * - PostgreSQL full-text search with tsvector indexing
+ * - Content search across comment text
+ * - Author-based filtering and search
+ * - Date range filtering for temporal queries
+ * - Sorting by newest, oldest, popular (reaction-based)
+ *
+ * Performance Features:
+ * - JSON aggregation for media to reduce database queries
+ * - Efficient pagination with offset/limit support
+ * - Indexed queries on frequently accessed fields
+ * - Transaction support for data consistency
+ * - Connection pooling via database configuration
+ *
+ * Data Flow:
+ * Comment Creation → Media Processing → Database Insert → URL Generation
+ * Comment Loading → Author Join → Media Aggregation → URL Generation → Display
+ * Comment Search → Full-text Query → Filter → Sort → Paginate → Results
+ * Comment Edit → History Save → Content Update → Timestamp Update
+ *
+ * Integration Points:
+ * - Used by CommentController for API endpoints
+ * - Connected to CommentsSection React component
+ * - Integrated with Post model for comment counts
+ * - Links to User model for author information
+ * - Supports Reaction model for engagement
+ */
+
 const { query } = require('../config/database');
 
+/**
+ * Comment Model Class
+ *
+ * Comprehensive comment management with media support and threading capabilities.
+ * Recently enhanced to fix media display issues and improve performance.
+ */
 class Comment {
   static async create({
     postId,

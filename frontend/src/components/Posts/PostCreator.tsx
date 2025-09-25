@@ -1,3 +1,48 @@
+/**
+ * PostCreator Component
+ *
+ * Advanced post creation interface with multi-media support and flexible content options.
+ * Provides rich text editing, file uploads, post type selection, and visibility controls.
+ *
+ * Features:
+ * - Multi-file upload support with drag-and-drop capability
+ * - Real-time file preview for images and documents
+ * - Post type selection (standard, share, announcement, question, sale)
+ * - Visibility controls (public, followers, private)
+ * - File size validation and formatting
+ * - Form validation with user-friendly error messages
+ * - Optimistic UI updates with loading states
+ * - Auto-expanding text areas for content input
+ *
+ * Architecture:
+ * - Functional component with React hooks for state management
+ * - Uses PostsContext for post creation and state updates
+ * - Integrates with AuthContext for user authentication
+ * - Implements controlled form inputs with validation
+ * - Supports both text-only and media-rich posts
+ * - Uses useCallback for performance optimization
+ *
+ * Props:
+ * @param onPostCreated - Optional callback fired after successful post creation
+ *
+ * State Management:
+ * - Form data state (content, type, visibility)
+ * - File management state with preview capabilities
+ * - UI state (loading, errors, option visibility)
+ * - Form validation state and error handling
+ *
+ * File Handling:
+ * - Multi-file selection with Array management
+ * - File preview generation for images
+ * - File size formatting and validation
+ * - File removal and reordering capabilities
+ *
+ * Integration Points:
+ * - PostsContext: Post creation and timeline updates
+ * - AuthContext: User authentication and avatar display
+ * - File upload API: Multi-part form data submission
+ * - Media processing: File validation and optimization
+ */
 import React, { useState, useRef, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { usePosts } from '../../contexts/PostsContext';

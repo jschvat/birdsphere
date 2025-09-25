@@ -22,7 +22,38 @@ const createStorage = (pathEnvVar, defaultPath) => {
 const generalStorage = createStorage('UPLOAD_PATH', 'uploads/');
 const avatarStorage = createStorage('AVATAR_PATH', 'uploads/avatars/');
 const postStorage = createStorage('POST_MEDIA_PATH', 'uploads/posts/');
+const commentStorage = createStorage('COMMENT_MEDIA_PATH', 'uploads/comments/');
 const downloadStorage = createStorage('DOWNLOAD_PATH', 'uploads/downloads/');
+
+// File filter for comments (more restrictive than posts)
+const commentFileFilter = (req, file, cb) => {
+  const allowedTypes = {
+    // Images
+    'image/jpeg': true,
+    'image/jpg': true,
+    'image/png': true,
+    'image/webp': true,
+    'image/gif': true,
+
+    // Videos
+    'video/mp4': true,
+    'video/mpeg': true,
+    'video/quicktime': true,
+    'video/webm': true,
+    'video/avi': true,
+    'video/mov': true,
+
+    // Basic documents only for comments
+    'application/pdf': true,
+    'text/plain': true
+  };
+
+  if (allowedTypes[file.mimetype]) {
+    cb(null, true);
+  } else {
+    cb(new Error(`File type ${file.mimetype} is not supported for comments`), false);
+  }
+};
 
 // File filter function for posts (supports multiple file types)
 const postFileFilter = (req, file, cb) => {
@@ -129,6 +160,16 @@ const postUpload = multer({
   fileFilter: postFileFilter
 });
 
+// Configure multer for comment uploads (more restrictive)
+const commentUpload = multer({
+  storage: commentStorage,
+  limits: {
+    fileSize: parseInt(process.env.MAX_COMMENT_FILE_SIZE) || 10 * 1024 * 1024, // 10MB default for comments
+    files: 5 // Maximum 5 files per comment
+  },
+  fileFilter: commentFileFilter
+});
+
 // Configure multer for avatar uploads
 const avatarUpload = multer({
   storage: avatarStorage,
@@ -153,6 +194,12 @@ const uploadPostFiles = postUpload.array('media', 20);
 
 // Middleware for single post file upload
 const uploadPostSingle = postUpload.single('file');
+
+// Middleware for comment file uploads
+const uploadCommentFiles = commentUpload.array('media', 5);
+
+// Middleware for single comment file upload
+const uploadCommentSingle = commentUpload.single('file');
 
 // Error handling middleware
 const handleUploadError = (err, req, res, next) => {
@@ -262,7 +309,7 @@ const processPostFiles = (req, res, next) => {
       size: req.file.size,
       originalName: req.file.originalname,
       category: categorizeFile(req.file),
-      url: `${publicUploadUrl}/${req.file.filename}`
+      url: `${publicUploadUrl}/posts/${req.file.filename}`
     };
   }
 
@@ -274,7 +321,46 @@ const processPostFiles = (req, res, next) => {
       size: file.size,
       originalName: file.originalname,
       category: categorizeFile(file),
-      url: `${publicUploadUrl}/${file.filename}`
+      url: `${publicUploadUrl}/posts/${file.filename}`
+    }));
+  }
+
+  next();
+};
+
+// Middleware specifically for processing comment files
+const processCommentFiles = (req, res, next) => {
+  const publicUploadUrl = process.env.PUBLIC_UPLOAD_URL || '/uploads';
+
+  if (req.file) {
+    req.uploadedFile = {
+      path: req.file.path,
+      filename: req.file.filename,
+      mimetype: req.file.mimetype,
+      size: req.file.size,
+      originalName: req.file.originalname,
+      fileType: req.file.mimetype.startsWith('image/') ? 'image' :
+                req.file.mimetype.startsWith('video/') ? 'video' : 'document',
+      fileUrl: `/uploads/comments/${req.file.filename}`,
+      fileName: req.file.originalname,
+      fileSize: req.file.size,
+      mimeType: req.file.mimetype
+    };
+  }
+
+  if (req.files && req.files.length > 0) {
+    req.uploadedFiles = req.files.map(file => ({
+      path: file.path,
+      filename: file.filename,
+      mimetype: file.mimetype,
+      size: file.size,
+      originalName: file.originalname,
+      fileType: file.mimetype.startsWith('image/') ? 'image' :
+                file.mimetype.startsWith('video/') ? 'video' : 'document',
+      fileUrl: `/uploads/comments/${file.filename}`,
+      fileName: file.originalname,
+      fileSize: file.size,
+      mimeType: file.mimetype
     }));
   }
 
@@ -287,9 +373,12 @@ module.exports = {
   uploadProfileImage,
   uploadPostFiles,
   uploadPostSingle,
+  uploadCommentFiles,
+  uploadCommentSingle,
   handleUploadError,
   validateUpload,
   processUploadedFiles,
   processPostFiles,
+  processCommentFiles,
   categorizeFile
 };

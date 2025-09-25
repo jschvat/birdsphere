@@ -1,6 +1,51 @@
+/**
+ * Follow Data Model
+ * Advanced social relationship management with notification preferences and engagement tracking.
+ *
+ * Architecture Overview:
+ * - Bidirectional relationship tracking (followers/following)
+ * - Granular notification preferences (posts, important content, live streams)
+ * - Engagement scoring for algorithmic feed prioritization
+ * - Self-follow prevention with relationship validation
+ * - Mutual connection discovery and suggestions
+ * - Comprehensive analytics and statistics
+ *
+ * Key Features:
+ * - Notification Preferences: Users can customize notifications per relationship
+ * - Engagement Tracking: Scores relationships based on user interactions
+ * - Social Discovery: Find mutual follows and suggest new connections
+ * - Analytics Dashboard: Detailed follower/following statistics
+ * - Performance Optimized: Efficient queries for large social graphs
+ *
+ * Database Design:
+ * - Unique constraint on (follower_id, following_id) prevents duplicates
+ * - Indexes on follower_id and following_id for fast lookups
+ * - Engagement scoring for feed algorithm optimization
+ * - Timestamp tracking for relationship analytics
+ *
+ * Integration Points:
+ * - Works with User model for profile information
+ * - Feeds into timeline generation algorithms
+ * - Powers notification delivery systems
+ * - Supports social discovery features
+ */
 const db = require('../config/database');
 
 class Follow {
+  /**
+   * Create Follow Relationship
+   * Establishes a follower relationship with customizable notification preferences.
+   * Prevents self-following and handles duplicate relationships via UPSERT.
+   *
+   * @param {Object} params - Follow relationship parameters
+   * @param {string} params.followerId - ID of user doing the following
+   * @param {string} params.followingId - ID of user being followed
+   * @param {boolean} [params.notifyAllPosts=true] - Notify for all posts
+   * @param {boolean} [params.notifyImportantPosts=true] - Notify for important posts
+   * @param {boolean} [params.notifyLiveStream=true] - Notify for live streams
+   * @returns {Promise<Object>} Created or updated follow relationship
+   * @throws {Error} If user attempts to follow themselves
+   */
   static async create({
     followerId,
     followingId,
@@ -36,12 +81,27 @@ class Follow {
     return result.rows[0];
   }
 
+  /**
+   * Find Follow by ID
+   * Retrieves a specific follow relationship by its unique identifier.
+   *
+   * @param {string} id - Follow relationship ID
+   * @returns {Promise<Object|null>} Follow relationship or null if not found
+   */
   static async findById(id) {
     const query = 'SELECT * FROM follows WHERE id = $1';
     const result = await db.query(query, [id]);
     return result.rows[0];
   }
 
+  /**
+   * Find Follow by User Pair
+   * Checks if a specific follow relationship exists between two users.
+   *
+   * @param {string} followerId - ID of following user
+   * @param {string} followingId - ID of followed user
+   * @returns {Promise<Object|null>} Follow relationship or null if not found
+   */
   static async findByUsers(followerId, followingId) {
     const query = `
       SELECT * FROM follows
@@ -52,6 +112,18 @@ class Follow {
     return result.rows[0];
   }
 
+  /**
+   * Get User's Followers
+   * Retrieves paginated list of users following the specified user with profile information.
+   * Supports multiple sorting options including engagement-based ranking.
+   *
+   * @param {string} userId - ID of user whose followers to retrieve
+   * @param {Object} [options={}] - Query options
+   * @param {number} [options.limit=20] - Maximum followers to return
+   * @param {number} [options.offset=0] - Pagination offset
+   * @param {string} [options.sort='newest'] - Sort order: newest, oldest, engagement
+   * @returns {Promise<Array>} Array of followers with user profile data
+   */
   static async getFollowers(userId, options = {}) {
     const {
       limit = 20,
@@ -87,6 +159,18 @@ class Follow {
     return result.rows;
   }
 
+  /**
+   * Get Users Being Followed
+   * Retrieves paginated list of users that the specified user is following.
+   * Includes profile information and supports engagement-based sorting.
+   *
+   * @param {string} userId - ID of user whose following list to retrieve
+   * @param {Object} [options={}] - Query options
+   * @param {number} [options.limit=20] - Maximum following to return
+   * @param {number} [options.offset=0] - Pagination offset
+   * @param {string} [options.sort='newest'] - Sort order: newest, oldest, engagement
+   * @returns {Promise<Array>} Array of followed users with profile data
+   */
   static async getFollowing(userId, options = {}) {
     const {
       limit = 20,
@@ -122,6 +206,14 @@ class Follow {
     return result.rows;
   }
 
+  /**
+   * Get Following IDs Only
+   * Fast retrieval of just the IDs of users being followed.
+   * Optimized for timeline generation and bulk operations.
+   *
+   * @param {string} userId - ID of user whose following IDs to retrieve
+   * @returns {Promise<Array<string>>} Array of user IDs being followed
+   */
   static async getFollowingIds(userId) {
     const query = `
       SELECT following_id
@@ -133,6 +225,14 @@ class Follow {
     return result.rows.map(row => row.following_id);
   }
 
+  /**
+   * Get Follower IDs Only
+   * Fast retrieval of just the IDs of followers.
+   * Used for notification targeting and analytics.
+   *
+   * @param {string} userId - ID of user whose follower IDs to retrieve
+   * @returns {Promise<Array<string>>} Array of follower user IDs
+   */
   static async getFollowerIds(userId) {
     const query = `
       SELECT follower_id

@@ -1,3 +1,38 @@
+/**
+ * Main API Router
+ * Central routing hub for the BirdSphere application API endpoints.
+ *
+ * Route Structure:
+ * - /api/auth - Authentication and user account management
+ * - /api/posts - Social media posts, comments, and reactions
+ * - /api/users - User profiles, discovery, and management
+ * - /api/listings - Animal marketplace and breeding listings
+ * - /api/follows - Social relationships and follow management
+ * - /api/messages - Direct messaging between users
+ * - /api/chat - Real-time chat functionality
+ * - /api/media - File upload and media management
+ * - /api/location - Geographic and location services
+ * - /api/upload - Legacy upload endpoints
+ *
+ * API Features:
+ * - RESTful design with consistent response formats
+ * - Comprehensive authentication and authorization
+ * - Input validation and sanitization
+ * - Error handling and appropriate HTTP status codes
+ * - Swagger/OpenAPI documentation for key endpoints
+ * - Rate limiting and security middleware
+ * - Caching for performance optimization
+ *
+ * Authentication:
+ * Most endpoints require JWT authentication via:
+ * - Authorization: Bearer <token> header
+ * - httpOnly cookies (preferred for web clients)
+ *
+ * Response Format:
+ * All responses follow consistent JSON structure with:
+ * - Success: { message?, data?, pagination? }
+ * - Error: { error, message?, details? }
+ */
 const express = require('express');
 const router = express.Router();
 

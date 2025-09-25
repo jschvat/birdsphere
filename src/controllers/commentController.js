@@ -1,3 +1,62 @@
+/**
+ * Comment Controller
+ *
+ * Manages all comment-related HTTP endpoints for the BirdSphere social platform.
+ * Handles threaded conversations, media attachments in comments, and engagement
+ * features. Recently enhanced to fix media display issues and improve performance.
+ *
+ * Core Responsibilities:
+ * - Comment CRUD operations with threading support
+ * - Media attachment handling in comments
+ * - Comment reaction and engagement tracking
+ * - Hierarchical comment structure management
+ * - Content moderation and visibility controls
+ * - Search and filtering across comment content
+ *
+ * Recent Fixes & Enhancements:
+ * - Fixed comment media display by enhancing getPostComments endpoint
+ * - Improved media URL generation for proper cross-origin access
+ * - Enhanced comment loading with author information and media aggregation
+ * - Fixed broken PostgreSQL stored procedure dependency
+ * - Optimized query performance with proper JOIN operations
+ *
+ * Key Features:
+ * 1. **Threaded Conversations**: Unlimited comment nesting and replies
+ * 2. **Media Support**: Images, videos, documents in comments
+ * 3. **Real-time Updates**: Live comment feeds and notifications
+ * 4. **Content Discovery**: Search within comment threads
+ * 5. **Engagement Tracking**: Reactions, reply counts, view metrics
+ * 6. **Moderation Tools**: Hide, delete, and moderate comments
+ *
+ * Endpoints Overview:
+ * - POST /posts/:postId/comments - Create new comment or reply
+ * - GET /posts/:postId/comments - Get all comments for a post (RECENTLY ENHANCED)
+ * - GET /comments/:id - Get single comment with details
+ * - PUT /comments/:id - Update existing comment
+ * - DELETE /comments/:id - Delete comment (author/moderator only)
+ * - POST /comments/:id/reactions - Add reaction to comment
+ * - GET /comments/search - Search across comment content
+ *
+ * Data Flow Architecture:
+ * Request → Auth Check → Validation → Model Operation → Media Processing → Response
+ * Comment Query → Author Join → Media Aggregation → URL Generation → JSON Response
+ * Media Upload → File Processing → Database Insert → URL Generation → Display
+ *
+ * Recent Performance Improvements:
+ * - Replaced broken stored procedure with direct SQL queries
+ * - Optimized media loading with single query using JSON aggregation
+ * - Enhanced URL generation for consistent media access
+ * - Improved error handling and response formatting
+ *
+ * Integration Points:
+ * - Comment model for database operations (recently enhanced)
+ * - Post model for parent post validation
+ * - User model for author information and permissions
+ * - Reaction model for comment engagement
+ * - Media processing for file uploads and storage
+ * - CommentsSection React component (recently fixed)
+ */
+
 const Comment = require('../models/Comment');
 const Post = require('../models/Post');
 const Reaction = require('../models/Reaction');
@@ -5,7 +64,13 @@ const User = require('../models/User');
 const { validationResult } = require('express-validator');
 
 /**
- * Create a comment on a post
+ * Create Comment on Post
+ *
+ * Creates a new comment or reply with optional media attachments.
+ * Supports threaded conversations and validates parent relationships.
+ *
+ * @route POST /api/posts/:postId/comments
+ * @access Private (authenticated users)
  */
 exports.createComment = async (req, res) => {
   try {

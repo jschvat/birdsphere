@@ -1,9 +1,48 @@
+/**
+ * Follow Controller
+ * Social relationship management for user following and discovery features.
+ *
+ * NOTE: This controller appears to use MongoDB/Mongoose operations,
+ * indicating a hybrid database architecture where social relationships
+ * may be stored in MongoDB while core user data is in PostgreSQL.
+ *
+ * Core Responsibilities:
+ * - Follow/unfollow relationship management
+ * - Follower and following list retrieval
+ * - Social discovery and user suggestions
+ * - Follow statistics and analytics
+ * - Notification preferences for follows
+ * - Follow status checking and validation
+ *
+ * Key Features:
+ * - Social Graph Management: Complete follow relationship handling
+ * - Smart Suggestions: Algorithm-based user discovery and recommendations
+ * - Preference Control: Granular notification and category preferences
+ * - Analytics: Comprehensive follow statistics and insights
+ * - Performance Optimized: Efficient aggregation queries for large datasets
+ * - Validation: Prevents self-following and duplicate relationships
+ *
+ * Integration Points:
+ * - Works with MongoDB Follow model for relationship data
+ * - Connects to User model for profile information
+ * - Supports notification systems with preference management
+ * - Feeds social discovery algorithms
+ * - Powers timeline and content recommendation systems
+ */
 const Follow = require('../models/Follow');
 const User = require('../models/User');
 const { validationResult } = require('express-validator');
 
 /**
- * Follow a user
+ * Follow User Endpoint
+ * Creates a follow relationship with duplicate and self-follow prevention.
+ * Supports category-specific following for targeted content preferences.
+ *
+ * @param {Object} req - Express request object
+ * @param {string} req.params.userId - ID of user to follow
+ * @param {Array} [req.body.categories] - Specific categories to follow
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} Success confirmation with relationship data
  */
 exports.followUser = async (req, res) => {
   try {
@@ -65,7 +104,13 @@ exports.followUser = async (req, res) => {
 };
 
 /**
- * Unfollow a user
+ * Unfollow User Endpoint
+ * Removes an existing follow relationship between users.
+ *
+ * @param {Object} req - Express request object
+ * @param {string} req.params.userId - ID of user to unfollow
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} Success confirmation of relationship removal
  */
 exports.unfollowUser = async (req, res) => {
   try {
@@ -98,7 +143,16 @@ exports.unfollowUser = async (req, res) => {
 };
 
 /**
- * Get user's followers
+ * Get User's Followers
+ * Retrieves paginated list of users following the specified user.
+ * Includes follow status for the current authenticated user.
+ *
+ * @param {Object} req - Express request object
+ * @param {string} req.params.userId - ID of user to get followers for
+ * @param {number} [req.query.limit=20] - Maximum followers to return
+ * @param {number} [req.query.offset=0] - Pagination offset
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} Paginated followers list with user profiles
  */
 exports.getFollowers = async (req, res) => {
   try {
@@ -151,7 +205,16 @@ exports.getFollowers = async (req, res) => {
 };
 
 /**
- * Get users that a user is following
+ * Get Following List
+ * Retrieves paginated list of users that the specified user follows.
+ * Shows follow status from current user's perspective.
+ *
+ * @param {Object} req - Express request object
+ * @param {string} req.params.userId - ID of user to get following list for
+ * @param {number} [req.query.limit=20] - Maximum following to return
+ * @param {number} [req.query.offset=0] - Pagination offset
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} Paginated following list with user profiles
  */
 exports.getFollowing = async (req, res) => {
   try {
@@ -204,7 +267,14 @@ exports.getFollowing = async (req, res) => {
 };
 
 /**
- * Get follow statistics for a user
+ * Get Follow Statistics
+ * Retrieves comprehensive follow metrics for a user including counts
+ * and current user's follow status.
+ *
+ * @param {Object} req - Express request object
+ * @param {string} req.params.userId - ID of user to get stats for
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} Follow statistics including follower/following counts
  */
 exports.getFollowStats = async (req, res) => {
   try {
@@ -244,7 +314,14 @@ exports.getFollowStats = async (req, res) => {
 };
 
 /**
- * Get suggested users to follow
+ * Get Suggested Users
+ * Algorithm-based user recommendations using mutual connections and popularity.
+ * Combines friend-of-friend suggestions with popular user discovery.
+ *
+ * @param {Object} req - Express request object
+ * @param {number} [req.query.limit=10] - Maximum suggestions to return
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} Curated list of suggested users to follow
  */
 exports.getSuggestedUsers = async (req, res) => {
   try {
@@ -298,7 +375,16 @@ exports.getSuggestedUsers = async (req, res) => {
 };
 
 /**
- * Update follow preferences
+ * Update Follow Preferences
+ * Modifies notification settings and category preferences for existing follows.
+ * Allows fine-tuned control over content and notification delivery.
+ *
+ * @param {Object} req - Express request object
+ * @param {string} req.params.userId - ID of followed user
+ * @param {Array} [req.body.categories] - Updated category preferences
+ * @param {Object} [req.body.notifications] - Updated notification settings
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} Updated follow relationship with new preferences
  */
 exports.updateFollowPreferences = async (req, res) => {
   try {
@@ -343,7 +429,14 @@ exports.updateFollowPreferences = async (req, res) => {
 };
 
 /**
- * Check if user is following another user
+ * Check Follow Status
+ * Determines if the current user is following a specific user.
+ * Returns detailed follow relationship information if exists.
+ *
+ * @param {Object} req - Express request object
+ * @param {string} req.params.userId - ID of user to check follow status for
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} Follow status and relationship details
  */
 exports.checkFollowStatus = async (req, res) => {
   try {

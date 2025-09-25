@@ -1,3 +1,37 @@
+/**
+ * Token Service
+ * Advanced JWT token management with Redis-based session tracking and device management.
+ *
+ * Core Responsibilities:
+ * - JWT token generation with secure random token IDs
+ * - Redis-based token storage and validation
+ * - Device fingerprinting and session tracking
+ * - Token revocation and cleanup
+ * - Remember me functionality with extended sessions
+ * - User session management across multiple devices
+ *
+ * Key Features:
+ * - Secure Token IDs: Cryptographically secure token identification
+ * - Device Tracking: User agent, IP, and fingerprint association
+ * - Session Management: Per-user active session tracking
+ * - Automatic Expiry: TTL-based token cleanup in Redis
+ * - Remember Me: Extended 90-day sessions for persistent logins
+ * - Bulk Operations: Revoke all user tokens for security incidents
+ *
+ * Security Features:
+ * - Token mismatch detection to prevent token hijacking
+ * - Automatic cleanup of expired tokens
+ * - Device info validation for session integrity
+ * - User-based token revocation for account security
+ * - Redis TTL ensures no orphaned session data
+ *
+ * Integration Points:
+ * - Works with JWT for token signing and verification
+ * - Uses Redis for high-performance session storage
+ * - Integrates with authentication middleware
+ * - Supports logout and account deletion flows
+ * - Powers multi-device session management
+ */
 const redisClient = require('../config/redis');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');

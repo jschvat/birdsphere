@@ -1,3 +1,37 @@
+/**
+ * Media Service
+ * Comprehensive file management and processing service for multi-media content handling.
+ *
+ * Core Responsibilities:
+ * - Multi-format file categorization and validation
+ * - Organized directory structure management
+ * - File metadata extraction and generation
+ * - Preview capability detection
+ * - File size formatting and optimization
+ * - Secure file processing and validation
+ *
+ * Key Features:
+ * - Multi-Category Support: Images, videos, documents, 3D models, archives
+ * - Smart Categorization: Automatic file type detection and classification
+ * - Preview Detection: Determines which files can be previewed in-browser
+ * - Metadata Generation: Comprehensive file information extraction
+ * - Directory Management: Automatic creation of organized upload directories
+ * - Security Validation: File type validation and security checks
+ *
+ * Supported File Types:
+ * - Images: JPEG, PNG, WebP, GIF, SVG
+ * - Videos: MP4, WebM, QuickTime, AVI, MOV
+ * - Documents: PDF, Office formats, plain text, CSV, RTF
+ * - 3D Models: SketchUp, STL, OBJ, FBX, GLTF, Blender
+ * - Archives: ZIP, RAR, 7Z compression formats
+ *
+ * Integration Points:
+ * - Works with upload middleware for file processing
+ * - Supports post and listing media management
+ * - Integrates with storage systems and CDNs
+ * - Powers media galleries and previews
+ * - Handles file cleanup and organization
+ */
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');

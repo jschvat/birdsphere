@@ -1,8 +1,61 @@
+/**
+ * Posts Context Module
+ *
+ * Comprehensive state management system for social media posts, comments, and reactions
+ * using React Context API with useReducer for complex state management and optimization.
+ *
+ * Core Responsibilities:
+ * - Centralized post state management with CRUD operations
+ * - Comment system with threaded conversations support
+ * - Reaction system with 7 emotion types
+ * - Infinite scrolling with pagination and caching
+ * - Optimistic UI updates with automatic rollback on failures
+ * - Data transformation between API and frontend formats
+ * - Memory-efficient caching with LRU eviction strategies
+ *
+ * Architecture:
+ * - React Context with useReducer for complex state transitions
+ * - Immutable state updates with optimistic rendering
+ * - Ref-based caching to prevent unnecessary re-renders
+ * - API integration with error handling and retry mechanisms
+ * - TypeScript interfaces for complete type safety
+ * - Modular action system for maintainable state updates
+ *
+ * State Management Features:
+ * - Post timeline with infinite scrolling support
+ * - Real-time updates with WebSocket integration capability
+ * - Comment threading with unlimited nesting depth
+ * - Reaction aggregation with emoji-based feedback
+ * - Media attachment handling for posts and comments
+ * - User interaction tracking and analytics support
+ *
+ * Performance Optimizations:
+ * - Post caching with Map for O(1) lookups
+ * - Lazy loading of comments and media content
+ * - Optimistic updates for immediate UI feedback
+ * - Debounced API calls to reduce server load
+ * - Memory management with automatic cache cleanup
+ *
+ * Integration Points:
+ * - PostCard components for individual post rendering
+ * - CommentSection for threaded conversation displays
+ * - ReactionPicker for user interaction interfaces
+ * - MediaDisplay for rich content presentation
+ * - InfiniteScroll for pagination and loading states
+ */
 import React, { createContext, useContext, useReducer, useCallback, ReactNode, useRef } from 'react';
 import api from '../services/api';
-import { Post, CreatePostData, Comment, Reaction } from '../types/index';
+import { Post, CreatePostData, Comment, Reaction, CreateCommentData } from '../types/index';
 
-// Transform backend response (snake_case) to frontend format (camelCase)
+/**
+ * Transform Backend Response to Frontend Format
+ *
+ * Converts snake_case API responses to camelCase frontend objects for consistent
+ * JavaScript naming conventions and type safety throughout the application.
+ *
+ * @param apiPost - Raw post object from API with snake_case properties
+ * @returns Transformed post object with camelCase properties matching Post interface
+ */
 const transformPostFromApi = (apiPost: any): Post => {
   return {
     id: apiPost.id,
@@ -243,9 +296,11 @@ interface PostsContextValue extends PostsState {
   addReaction: (postId: string, reactionType: string) => Promise<void>;
   removeReaction: (postId: string, reactionId: string) => Promise<void>;
   addComment: (postId: string, content: string) => Promise<Comment>;
+  addCommentWithMedia: (postId: string, commentData: CreateCommentData) => Promise<Comment>;
   updateComment: (postId: string, commentId: string, content: string) => Promise<Comment>;
   deleteComment: (postId: string, commentId: string) => Promise<void>;
   loadComments: (postId: string) => Promise<Comment[]>;
+  loadCommentsWithMedia: (postId: string) => Promise<Comment[]>;
   getPost: (postId: string) => Post | null;
 }
 
@@ -403,6 +458,41 @@ export const PostsProvider: React.FC<PostsProviderProps> = ({ children }) => {
     }
   }, []);
 
+  const addCommentWithMedia = useCallback(async (postId: string, commentData: CreateCommentData): Promise<Comment> => {
+    try {
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append('content', commentData.content);
+
+      if (commentData.parentCommentId) {
+        formData.append('parentCommentId', commentData.parentCommentId);
+      }
+
+      if (commentData.commentType) {
+        formData.append('commentType', commentData.commentType);
+      }
+
+      // Add media files
+      if (commentData.media && commentData.media.length > 0) {
+        commentData.media.forEach((file) => {
+          formData.append('media', file);
+        });
+      }
+
+      const response = await api.post(`/posts/${postId}/comments/media`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      const newComment = response.data.data;
+      dispatch({ type: 'ADD_COMMENT', postId, comment: newComment });
+      return newComment;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Failed to add comment with media');
+    }
+  }, []);
+
   const loadComments = useCallback(async (postId: string): Promise<Comment[]> => {
     try {
       const response = await api.get(`/posts/${postId}/comments`);
@@ -410,6 +500,16 @@ export const PostsProvider: React.FC<PostsProviderProps> = ({ children }) => {
       return data || [];
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to load comments');
+    }
+  }, []);
+
+  const loadCommentsWithMedia = useCallback(async (postId: string): Promise<Comment[]> => {
+    try {
+      const response = await api.get(`/posts/${postId}/comments/media`);
+      const { data } = response.data;
+      return data || [];
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Failed to load comments with media');
     }
   }, []);
 
@@ -426,9 +526,11 @@ export const PostsProvider: React.FC<PostsProviderProps> = ({ children }) => {
     addReaction,
     removeReaction,
     addComment,
+    addCommentWithMedia,
     updateComment,
     deleteComment,
     loadComments,
+    loadCommentsWithMedia,
     getPost,
   };
 

@@ -1,3 +1,48 @@
+/**
+ * TreeView Component
+ *
+ * Hierarchical tree view component for displaying and selecting animal categories with nested structures.
+ * Provides expandable/collapsible nodes with multi-selection capabilities and visual hierarchy indicators.
+ *
+ * Features:
+ * - Recursive tree structure with unlimited nesting depth
+ * - Multi-selection with checkbox controls and visual indicators
+ * - Expandable/collapsible nodes with smooth transitions
+ * - Icon support for visual category identification
+ * - Read-only mode for display-only scenarios
+ * - Keyboard navigation and accessibility support
+ * - Auto-expansion of first two levels for better UX
+ * - Hover effects and selection highlighting
+ * - Scrollable container with fixed height constraints
+ *
+ * Architecture:
+ * - Functional components using React hooks for state management
+ * - Recursive TreeNode component for nested category rendering
+ * - Controlled component pattern with external state management
+ * - CSS-based styling with DaisyUI theme integration
+ * - Performance optimized with minimal re-renders
+ * - TypeScript interfaces for type safety and intellisense
+ *
+ * Tree Structure:
+ * - Root categories: Top-level animal categories (e.g., Mammals, Birds)
+ * - Sub-categories: Nested classifications with unlimited depth
+ * - Selection state: Maintained externally for parent component control
+ * - Visual indicators: Indentation, icons, checkboxes, and expand arrows
+ *
+ * Props:
+ * @param categories - Array of top-level AnimalCategory objects with nested children
+ * @param selectedIds - Optional array of selected category IDs for controlled selection
+ * @param onSelectionChange - Optional callback fired when selection state changes
+ * @param readOnly - Boolean to disable selection and show view-only mode
+ * @param showIcons - Boolean to control display of category icons
+ *
+ * Integration Points:
+ * - Animal listing and filtering systems
+ * - Pet marketplace category selection
+ * - Content management for animal content
+ * - Search and discovery interfaces
+ * - Administrative category management
+ */
 import React, { useState } from 'react';
 import { AnimalCategory } from '../types';
 
@@ -9,6 +54,20 @@ interface TreeViewProps {
   showIcons?: boolean;
 }
 
+/**
+ * TreeNode Component Props
+ *
+ * Individual tree node component for recursive rendering of hierarchical animal categories.
+ * Handles expansion, selection, and visual styling for each category node in the tree.
+ *
+ * Props:
+ * @param category - AnimalCategory object containing name, icon, and children
+ * @param selectedIds - Array of currently selected category IDs
+ * @param onSelectionChange - Callback function for handling selection state changes
+ * @param readOnly - Boolean indicating if node should be non-interactive
+ * @param showIcons - Boolean controlling icon visibility for this node
+ * @param level - Current nesting depth for indentation calculation (internal)
+ */
 interface TreeNodeProps {
   category: AnimalCategory;
   selectedIds?: number[];

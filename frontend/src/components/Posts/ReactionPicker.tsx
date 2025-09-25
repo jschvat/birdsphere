@@ -1,3 +1,55 @@
+/**
+ * ReactionPicker Component
+ *
+ * Interactive reaction picker overlay with 7 emotion-based reactions for posts and content.
+ * Provides Facebook-style reaction selection with smooth animations and hover effects.
+ *
+ * Features:
+ * - 7 distinct reaction types with emoji and color coding
+ * - Smooth slide-in animation and scaling hover effects
+ * - Click-outside detection for automatic closing
+ * - Current reaction highlighting and state management
+ * - Tooltip labels on hover with custom styling
+ * - Positioned relative to trigger element
+ * - Keyboard navigation support (implicit via focus)
+ * - Optimized timing to prevent immediate closure
+ *
+ * Architecture:
+ * - Functional component using React hooks for state management
+ * - Uses useRef for DOM element references and click detection
+ * - Implements useEffect for event listener management
+ * - Controlled component pattern with external state management
+ * - Positioned absolute overlay with z-index layering
+ * - Smooth CSS transitions and transform animations
+ *
+ * Reaction Types:
+ * - Like: 👍 Blue - General approval and positive sentiment
+ * - Love: ❤️ Red - Strong positive emotional response
+ * - Laugh: 😂 Yellow - Humorous content appreciation
+ * - Wow: 😮 Yellow - Surprise or amazement reaction
+ * - Sad: 😢 Yellow - Empathy or sadness response
+ * - Angry: 😠 Orange - Negative or frustration reaction
+ * - Hug: 🤗 Pink - Care and support expression
+ *
+ * Props:
+ * @param onReactionSelect - Callback fired when user selects a reaction type
+ * @param currentReaction - Currently active reaction type for highlighting
+ * @param isOpen - Boolean controlling picker visibility state
+ * @param onClose - Callback fired when picker should be closed
+ * @param triggerRef - Reference to trigger button for click-outside detection
+ *
+ * State Management:
+ * - hoveredReaction: Currently hovered reaction for tooltip display
+ * - DOM refs for click-outside detection and positioning
+ * - Event listener lifecycle management with cleanup
+ *
+ * Integration Points:
+ * - PostCard component for post reactions
+ * - Comment component for comment reactions
+ * - Reaction API service for server synchronization
+ * - Animation system for smooth transitions
+ * - Event handling system for user interactions
+ */
 import React, { useState, useRef, useEffect } from 'react';
 
 interface ReactionPickerProps {
@@ -5,7 +57,7 @@ interface ReactionPickerProps {
   currentReaction?: string | null;
   isOpen: boolean;
   onClose: () => void;
-  triggerRef: React.RefObject<HTMLButtonElement>;
+  triggerRef: React.RefObject<HTMLButtonElement | null>;
 }
 
 const ReactionPicker: React.FC<ReactionPickerProps> = ({

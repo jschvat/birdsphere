@@ -1,9 +1,44 @@
 /**
  * Authentication Service Module
- * 
- * Provides a comprehensive authentication API service layer that abstracts
- * all authentication-related HTTP operations and implements advanced caching
- * strategies for optimal performance and user experience.
+ *
+ * Comprehensive authentication API service layer providing secure user authentication,
+ * session management, and profile operations with advanced caching and concurrency control.
+ *
+ * Core Responsibilities:
+ * - User authentication (login, register, logout) with httpOnly cookie sessions
+ * - User profile management and updates with optimistic caching
+ * - Authentication state verification with intelligent cache invalidation
+ * - Concurrent request deduplication to prevent multiple auth checks
+ * - Secure session handling without client-side token storage
+ *
+ * Architecture:
+ * - Cookie-based authentication for enhanced security
+ * - In-memory caching with configurable TTL for performance
+ * - Promise-based concurrency control for authentication checks
+ * - Automatic cache invalidation on state changes
+ * - Service layer abstraction for consistent API interactions
+ * - Error handling with graceful degradation
+ *
+ * Security Features:
+ * - No client-side token storage (httpOnly cookies only)
+ * - Automatic session cleanup on logout
+ * - Cache invalidation on profile updates
+ * - Concurrent request protection against race conditions
+ * - Secure credential handling without exposure to client code
+ *
+ * Caching Strategy:
+ * - 30-second cache TTL for authentication state
+ * - Immediate cache invalidation on state changes
+ * - Single-flight pattern for concurrent authentication checks
+ * - Memory-efficient cache with timestamp validation
+ * - Automatic cleanup on service operations
+ *
+ * Integration Points:
+ * - AuthContext for React state management integration
+ * - API service for HTTP operations and interceptors
+ * - User profile components for data display
+ * - Protected routes for authentication gating
+ * - Session persistence across browser refreshes
  */
 
 import api from './api';

@@ -1,6 +1,128 @@
+/**
+ * Post Data Model
+ *
+ * Core social media content model for the BirdSphere platform. Handles creation,
+ * retrieval, and management of user posts with rich media support, engagement metrics,
+ * and advanced search capabilities.
+ *
+ * Core Architecture:
+ * - PostgreSQL-based with media file management
+ * - Transactional post creation with media attachments
+ * - Advanced search with full-text indexing and hashtag support
+ * - Engagement tracking (views, reactions, comments, shares)
+ * - Multiple post types (standard, share, announcement, question, sale)
+ * - Geolocation support for location-based posts
+ *
+ * Database Schema:
+ * Primary Table: posts
+ * - Content: content (text), post_type, visibility (public/friends/private)
+ * - Media: Linked via post_media table (one-to-many relationship)
+ * - Engagement: reaction_count, comment_count, share_count, view_count
+ * - Metadata: hashtags (array), search_keywords (array), engagement_score
+ * - Location: location_lat, location_lng, location_name
+ * - Flags: is_active, is_pinned, is_edited
+ *
+ * Related Tables:
+ * - post_media: Media attachments (images, videos, documents)
+ * - post_reactions: User reactions (like, love, laugh, etc.)
+ * - comments: User comments and replies
+ * - post_shares: Share/repost tracking
+ * - user_follows: Timeline construction based on following relationships
+ *
+ * Key Features:
+ * 1. **Rich Media Support**: Images, videos, documents with metadata
+ * 2. **Content Discovery**: Full-text search + hashtag indexing
+ * 3. **Engagement Analytics**: Comprehensive metrics and scoring
+ * 4. **Flexible Visibility**: Public, friends-only, or private posts
+ * 5. **Post Types**: Standard, announcements, questions, sales, shares
+ * 6. **Geolocation**: Location-tagged posts for local discovery
+ * 7. **Timeline Generation**: Efficient feeds with multiple sort options
+ *
+ * Media Architecture:
+ * - Files stored in filesystem (./uploads/posts/)
+ * - URLs generated with BASE_URL for cross-origin access
+ * - Metadata extraction for dimensions, duration, thumbnails
+ * - Multiple file types supported with MIME type validation
+ * - Display order maintained for consistent presentation
+ *
+ * Search & Discovery:
+ * - PostgreSQL full-text search on content
+ * - Hashtag array matching for topic discovery
+ * - Keyword extraction and indexing
+ * - Multiple sort algorithms (newest, popular, trending, engagement)
+ * - Pagination support for large datasets
+ *
+ * Performance Optimizations:
+ * - Database transactions for data consistency
+ * - JSON aggregation for media to reduce queries
+ * - Parameterized queries for SQL injection prevention
+ * - Indexing on frequently queried fields (author_id, created_at, hashtags)
+ *
+ * Data Flow:
+ * Post Creation → Transaction Start → Media Upload → Database Insert → URL Generation
+ * Timeline Request → Query Building → Media Aggregation → URL Generation → Response
+ * Search Request → Full-text Query → Filtering → Sorting → Pagination → Results
+ *
+ * Usage Patterns:
+ * - Controllers handle API endpoints and validation
+ * - Timeline service constructs personalized feeds
+ * - Search service provides content discovery
+ * - Media service manages file uploads and processing
+ */
+
 const { query, getClient } = require('../config/database');
 
+/**
+ * Post Model Class
+ *
+ * Provides comprehensive static methods for post lifecycle management.
+ * Emphasizes data consistency, performance, and rich media support.
+ */
 class Post {
+  /**
+   * Create New Post with Media Attachments
+   *
+   * Creates a new post using database transactions to ensure data consistency
+   * between post record and associated media files. Supports multiple media types
+   * and maintains proper ordering for display.
+   *
+   * Transaction Flow:
+   * 1. Begin database transaction
+   * 2. Insert post record
+   * 3. Process and insert media attachments
+   * 4. Commit transaction (or rollback on error)
+   *
+   * Media Processing:
+   * - Extracts metadata (dimensions, duration, thumbnails)
+   * - Maintains display order for consistent presentation
+   * - Generates proper file URLs for client access
+   *
+   * @param {Object} postData - Post creation data
+   * @param {string} postData.authorId - Post author user ID (required)
+   * @param {string} postData.content - Post text content (required)
+   * @param {string} postData.visibility - Visibility setting: 'public', 'friends', 'private' (default: 'public')
+   * @param {Array<Object>} postData.mediaAttachments - Array of media file objects (default: [])
+   * @param {string} postData.postType - Post type: 'standard', 'share', 'announcement', 'question', 'sale' (default: 'standard')
+   * @param {boolean} postData.isPinned - Whether post is pinned to profile (default: false)
+   * @param {number} postData.locationLat - GPS latitude for location tagging (optional)
+   * @param {number} postData.locationLng - GPS longitude for location tagging (optional)
+   * @param {string} postData.locationName - Human-readable location name (optional)
+   * @param {string} postData.originalPostId - Original post ID for shares/reposts (optional)
+   * @param {string} postData.shareComment - Comment when sharing another post (optional)
+   *
+   * @returns {Promise<Object>} Created post object with generated ID and timestamps
+   * @throws {Error} Database transaction errors or media processing failures
+   *
+   * Media Attachment Object Structure:
+   * {
+   *   category: 'image|video|document',
+   *   url: 'filename.ext',
+   *   originalName: 'user-uploaded-name.ext',
+   *   size: 1024,
+   *   mimetype: 'image/jpeg',
+   *   metadata: { width: 800, height: 600, duration: null, thumbnail: 'thumb.jpg' }
+   * }
+   */
   static async create({
     authorId,
     content,
@@ -186,13 +308,18 @@ class Post {
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
+    // Generate media URLs using environment variables
+    const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+    const publicUploadUrl = process.env.PUBLIC_UPLOAD_URL || '/uploads';
+    const postMediaPath = 'posts'; // From POST_MEDIA_PATH env var
+
     const sql = `
       SELECT p.*, u.username, u.first_name, u.last_name, u.profile_image,
              COALESCE(json_agg(
                json_build_object(
                  'id', pm.id,
                  'fileType', pm.file_type,
-                 'fileUrl', pm.file_url,
+                 'filename', pm.file_url,
                  'fileName', pm.file_name,
                  'fileSize', pm.file_size,
                  'mimeType', pm.mime_type,
@@ -200,7 +327,9 @@ class Post {
                  'height', pm.height,
                  'duration', pm.duration,
                  'thumbnailUrl', pm.thumbnail_url,
-                 'displayOrder', pm.display_order
+                 'displayOrder', pm.display_order,
+                 'url', CONCAT('${baseUrl}${publicUploadUrl}/${postMediaPath}/', pm.file_url),
+                 'fileUrl', CONCAT('${baseUrl}${publicUploadUrl}/${postMediaPath}/', pm.file_url)
                ) ORDER BY pm.display_order
              ) FILTER (WHERE pm.id IS NOT NULL), '[]'::json) as media
       FROM posts p

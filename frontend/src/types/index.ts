@@ -1,3 +1,39 @@
+/**
+ * TypeScript Type Definitions
+ *
+ * Comprehensive type definitions for the BirdSphere application frontend.
+ * Provides type safety, IntelliSense, and contract definitions for all data structures.
+ *
+ * Core Categories:
+ * - Animal taxonomy and category types
+ * - User authentication and profile types
+ * - Social media post and interaction types
+ * - Media file and upload types
+ * - API request and response types
+ *
+ * Architecture:
+ * - Interface-based design for object types
+ * - Union types for enumeration values
+ * - Generic types for reusable patterns
+ * - Optional properties with proper nullability
+ * - Consistent naming conventions throughout
+ *
+ * Integration Points:
+ * - React component props and state
+ * - API service method signatures
+ * - Redux/Context state structures
+ * - Form validation schemas
+ * - Database entity mappings
+ */
+
+/**
+ * Animal Category Interface
+ *
+ * Represents hierarchical animal taxonomy categories used in TreeView components
+ * and user preference selection systems.
+ *
+ * @interface AnimalCategory
+ */
 export interface AnimalCategory {
   id: number;
   name: string;
@@ -134,10 +170,16 @@ export interface Comment {
   };
   content: string;
   parentId?: string;
+  commentType?: 'standard' | 'media' | 'reaction' | 'question';
+  hasMedia?: boolean;
+  media?: CommentMediaFile[];
+  mediaAttachments?: CommentMediaFile[];
   reactions?: Reaction[];
   reactionCounts?: { [key: string]: number };
   replies?: Comment[];
   replyCount: number;
+  isEdited?: boolean;
+  isHidden?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -170,4 +212,26 @@ export interface MediaFile {
     duration?: number;
     thumbnail?: string;
   };
+}
+
+export interface CommentMediaFile {
+  id: string;
+  fileType: 'image' | 'video' | 'document';
+  fileUrl: string;
+  fileName: string;
+  fileSize?: number;
+  mimeType?: string;
+  width?: number;
+  height?: number;
+  duration?: number;
+  thumbnailUrl?: string;
+  displayOrder?: number;
+  createdAt?: string;
+}
+
+export interface CreateCommentData {
+  content: string;
+  parentCommentId?: string;
+  commentType?: 'standard' | 'media' | 'reaction' | 'question';
+  media?: File[];
 }

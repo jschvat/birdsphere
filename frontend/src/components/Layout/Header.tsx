@@ -1,3 +1,46 @@
+/**
+ * Header Component
+ *
+ * Main application navigation header with user authentication and routing controls.
+ * Provides sticky navigation, user menu, and responsive design for all screen sizes.
+ *
+ * Features:
+ * - Responsive navigation with mobile and desktop layouts
+ * - User authentication integration with avatar display
+ * - Active route highlighting with visual indicators
+ * - Dropdown user menu with profile and logout options
+ * - Brand logo with navigation to home timeline
+ * - Notification center integration (badges and alerts)
+ * - Click-outside detection for menu management
+ * - Sticky positioning for persistent navigation
+ *
+ * Architecture:
+ * - Functional component using React hooks for state management
+ * - Integrates with React Router for navigation and route detection
+ * - Uses AuthContext for user authentication state
+ * - Implements responsive design with Tailwind CSS classes
+ * - Follows accessible navigation patterns and ARIA standards
+ * - Uses useEffect for DOM event listeners and cleanup
+ *
+ * Navigation Structure:
+ * - Timeline: Main social feed and user posts
+ * - Explore: Content discovery and trending posts
+ * - Messages: Direct messaging and conversations
+ * - Profile: User settings and account management
+ * - Notifications: Real-time alerts and activity updates
+ *
+ * State Management:
+ * - User menu visibility with click-outside detection
+ * - Active route tracking for visual indicators
+ * - User authentication state and profile data
+ * - Menu toggle state for mobile responsiveness
+ *
+ * Integration Points:
+ * - AuthContext: User authentication and profile management
+ * - React Router: Navigation and route state detection
+ * - Avatar utilities: Dynamic user profile image generation
+ * - Layout system: Sticky header positioning and responsive design
+ */
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';

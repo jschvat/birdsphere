@@ -1,6 +1,67 @@
+/**
+ * Listing Data Model
+ * Comprehensive animal marketplace system with advanced search and location features.
+ *
+ * Architecture Overview:
+ * - Multi-category animal listings with detailed breed information
+ * - Geolocation-based proximity search using Haversine formula
+ * - Rich media support through ListingMedia relationship
+ * - Advanced filtering by species, breed, age, health status
+ * - Shipping and pickup logistics management
+ * - User reputation and breeder verification integration
+ *
+ * Key Features:
+ * - Location Intelligence: GPS coordinates with radius-based search
+ * - Advanced Search: Multi-criteria filtering with full-text search
+ * - Animal Details: Species, breed, age, sex, color, health tracking
+ * - Media Gallery: Multiple photos with primary image designation
+ * - Seller Management: Integration with user profiles and breeder status
+ * - Performance Optimized: Efficient queries for large catalog browsing
+ *
+ * Database Design:
+ * - Foreign keys to users (sellers) and categories
+ * - Indexed location fields for geographic queries
+ * - Status field for listing lifecycle management
+ * - View counter for popularity tracking
+ * - Comprehensive animal metadata storage
+ *
+ * Integration Points:
+ * - Works with User model for seller information
+ * - Connects to ListingMedia for image galleries
+ * - Uses category hierarchy for organization
+ * - Supports messaging for buyer-seller communication
+ */
 const db = require('../config/database');
 
 class Listing {
+  /**
+   * Create New Listing
+   * Creates a comprehensive animal listing with location and detailed animal information.
+   * Supports all animal metadata including health status and vaccination records.
+   *
+   * @param {string} sellerId - ID of user creating the listing
+   * @param {Object} listingData - Comprehensive listing information
+   * @param {string} listingData.categoryId - Animal category ID
+   * @param {string} listingData.title - Listing title
+   * @param {string} listingData.description - Detailed description
+   * @param {number} listingData.price - Price in specified currency
+   * @param {string} [listingData.currency='USD'] - Currency code
+   * @param {string} listingData.species - Animal species
+   * @param {string} listingData.breed - Specific breed
+   * @param {string} listingData.age - Animal age
+   * @param {string} listingData.sex - Animal sex
+   * @param {string} listingData.color - Animal color/markings
+   * @param {string} listingData.healthStatus - Health condition
+   * @param {string} listingData.vaccinationStatus - Vaccination records
+   * @param {boolean} [listingData.shippingAvailable=false] - Shipping option
+   * @param {boolean} [listingData.localPickupOnly=true] - Pickup requirement
+   * @param {string} listingData.locationCity - Seller's city
+   * @param {string} listingData.locationState - Seller's state/province
+   * @param {string} listingData.locationCountry - Seller's country
+   * @param {number} listingData.latitude - GPS latitude for proximity search
+   * @param {number} listingData.longitude - GPS longitude for proximity search
+   * @returns {Promise<Object>} Created listing with full details
+   */
   static async create(sellerId, listingData) {
     const {
       categoryId, title, description, price, currency = 'USD',
@@ -30,6 +91,14 @@ class Listing {
     return result.rows[0];
   }
 
+  /**
+   * Find Listing with Full Details
+   * Retrieves complete listing information including seller profile, category,
+   * and all associated media files ordered by display preference.
+   *
+   * @param {string} id - Listing ID
+   * @returns {Promise<Object|null>} Complete listing with seller, category, and media
+   */
   static async findById(id) {
     const query = `
       SELECT l.*, 
@@ -59,6 +128,15 @@ class Listing {
     return result.rows[0];
   }
 
+  /**
+   * Find Listings by Seller
+   * Retrieves all listings for a specific seller with media count.
+   * Optionally filters by listing status.
+   *
+   * @param {string} sellerId - Seller's user ID
+   * @param {string|null} [status=null] - Optional status filter (active, sold, etc.)
+   * @returns {Promise<Array>} Array of seller's listings with category and media info
+   */
   static async findBySeller(sellerId, status = null) {
     let query = `
       SELECT l.*, c.name as category_name,
@@ -85,6 +163,31 @@ class Listing {
     return result.rows;
   }
 
+  /**
+   * Advanced Listing Search
+   * Comprehensive search with multiple criteria including geolocation proximity.
+   * Supports full-text search, price ranges, animal characteristics, and geographic filters.
+   * Uses Haversine formula for accurate distance calculations.
+   *
+   * @param {Object} [filters={}] - Search criteria
+   * @param {string} [filters.query] - Full-text search query
+   * @param {string} [filters.category] - Category ID or parent category
+   * @param {number} [filters.minPrice] - Minimum price filter
+   * @param {number} [filters.maxPrice] - Maximum price filter
+   * @param {string} [filters.species] - Animal species filter
+   * @param {string} [filters.breed] - Breed filter
+   * @param {string} [filters.sex] - Sex filter
+   * @param {string} [filters.location] - City/state text search
+   * @param {number} [filters.radius=50] - Search radius in kilometers
+   * @param {number} [filters.latitude] - User's latitude for proximity
+   * @param {number} [filters.longitude] - User's longitude for proximity
+   * @param {boolean} [filters.shippingAvailable] - Shipping filter
+   * @param {number} [filters.page=1] - Pagination page number
+   * @param {number} [filters.limit=20] - Results per page
+   * @param {string} [filters.sortBy='created_at'] - Sort field: created_at, price, distance
+   * @param {string} [filters.sortOrder='desc'] - Sort direction: asc or desc
+   * @returns {Promise<Array>} Array of matching listings with seller and media info
+   */
   static async search(filters = {}) {
     const {
       query: searchQuery,
@@ -266,6 +369,13 @@ class Listing {
     return result.rows[0];
   }
 
+  /**
+   * Increment View Counter
+   * Atomically increases the view count for analytics and popularity ranking.
+   *
+   * @param {string} id - Listing ID to increment views for
+   * @returns {Promise<void>}
+   */
   static async incrementViews(id) {
     const query = 'UPDATE listings SET views_count = views_count + 1 WHERE id = $1';
     await db.query(query, [id]);
@@ -277,6 +387,13 @@ class Listing {
     return result.rows[0];
   }
 
+  /**
+   * Get Category Hierarchy
+   * Retrieves complete category tree with parent-child relationships.
+   * Used for navigation menus and category filters.
+   *
+   * @returns {Promise<Array>} Hierarchically organized categories with parent info
+   */
   static async getCategories() {
     const query = `
       SELECT c.*, 

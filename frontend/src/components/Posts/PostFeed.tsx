@@ -1,3 +1,51 @@
+/**
+ * PostFeed Component
+ *
+ * Infinite scrolling feed container for displaying posts with advanced loading and pagination features.
+ * Implements intersection observer for automatic content loading and provides comprehensive empty states.
+ *
+ * Features:
+ * - Infinite scroll with intersection observer API
+ * - Smart loading states with skeleton placeholders
+ * - Empty state messaging and error handling
+ * - End-of-feed notification with completion indicator
+ * - Performance optimization with useCallback hooks
+ * - Responsive grid layout for various screen sizes
+ * - Loading indicator positioning and threshold management
+ * - Smooth animations for state transitions
+ *
+ * Architecture:
+ * - Functional component using React hooks for state and lifecycle management
+ * - Uses IntersectionObserver for performance-optimized scroll loading
+ * - Implements ref forwarding for DOM element observation
+ * - Modular design with separated loading skeleton component
+ * - Error boundary compatible for graceful failure handling
+ * - Memory efficient with proper cleanup of observers
+ *
+ * Loading Strategy:
+ * - Initial load: Shows skeleton placeholders during first fetch
+ * - Pagination: Triggers load when user scrolls near bottom (100px threshold)
+ * - Progressive enhancement: Gracefully handles JavaScript disabled scenarios
+ * - Debounced loading to prevent rapid API calls
+ * - Visual feedback during async operations
+ *
+ * Props:
+ * @param posts - Array of Post objects to display in chronological order
+ * @param loading - Boolean indicating if posts are currently being fetched
+ * @param hasMore - Boolean indicating if more posts are available to load
+ * @param onLoadMore - Callback function fired when more posts should be loaded
+ *
+ * State Management:
+ * - observerRef: IntersectionObserver instance for scroll detection
+ * - loadMoreRef: DOM reference for the trigger element
+ * - Cleanup handling: Proper observer disconnection on unmount
+ *
+ * Integration Points:
+ * - PostCard: Individual post rendering with full interaction support
+ * - LoadingSpinner: Reusable loading indicators with size variants
+ * - PostsContext: Post data fetching and pagination management
+ * - Responsive design system: Adapts to mobile and desktop viewports
+ */
 import React, { useEffect, useRef, useCallback } from 'react';
 import { Post } from '../../types/index';
 import PostCard from './PostCard';
@@ -112,7 +160,40 @@ const PostFeed: React.FC<PostFeedProps> = ({
   );
 };
 
-// Loading skeleton component
+/**
+ * PostSkeleton Component
+ *
+ * Loading placeholder component that mimics the structure of PostCard during data fetching.
+ * Provides visual feedback with shimmer animations while posts are being loaded from the API.
+ *
+ * Features:
+ * - Accurate structural representation of PostCard layout
+ * - CSS pulse animation for engaging loading feedback
+ * - Randomized media skeleton for visual variety
+ * - Consistent spacing and sizing with actual post cards
+ * - Accessible loading indication for screen readers
+ * - Performance optimized with minimal DOM manipulation
+ *
+ * Architecture:
+ * - Stateless functional component for optimal performance
+ * - Uses CSS animations instead of JavaScript for smooth rendering
+ * - Modular design that can be reused across different contexts
+ * - Responsive layout matching parent PostCard structure
+ * - Memory efficient with no internal state management
+ *
+ * Layout Structure:
+ * - Header: Avatar placeholder and user information skeleton
+ * - Content: Multiple lines of text content placeholders
+ * - Media: Optional image/video placeholder (60% probability)
+ * - Actions: Button and interaction element placeholders
+ * - Borders and spacing: Consistent with actual post cards
+ *
+ * Integration Points:
+ * - Used by PostFeed during initial loading phases
+ * - Consistent with design system colors and spacing
+ * - Works with dark/light theme variations
+ * - Compatible with responsive breakpoints
+ */
 const PostSkeleton: React.FC = () => {
   return (
     <div className="card-birdsphere shadow-xl border-0 backdrop-blur-sm p-3 animate-pulse">

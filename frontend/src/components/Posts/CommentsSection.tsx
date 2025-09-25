@@ -1,3 +1,62 @@
+/**
+ * CommentsSection Component
+ *
+ * Comprehensive comment system with threaded conversations, media support, and real-time interactions.
+ * Provides nested comment threads, rich media attachments, and extensive comment management features.
+ *
+ * Features:
+ * - Threaded comment system with unlimited nesting depth
+ * - Rich media support (images, videos, documents) in comments
+ * - Real-time comment loading with optimistic UI updates
+ * - Inline comment editing and deletion for comment owners
+ * - Reply functionality with contextual user mentions
+ * - File attachment with drag-and-drop and preview
+ * - Auto-expanding textareas with character limits
+ * - Loading states and error handling with retry mechanisms
+ * - Comment reaction system integration
+ * - Responsive design with mobile-optimized layouts
+ *
+ * Architecture:
+ * - Functional component using React hooks for complex state management
+ * - Integrates with PostsContext for comment CRUD operations
+ * - Uses AuthContext for user authentication and permissions
+ * - Implements controlled form inputs with validation
+ * - Memory-efficient file handling with URL cleanup
+ * - Optimized comment loading with caching strategies
+ *
+ * Comment Structure:
+ * - Root comments: Top-level comments directly on posts
+ * - Reply threads: Nested comments with visual indentation
+ * - Media attachments: Files embedded within comment content
+ * - Reaction counts: Aggregated emoji reactions per comment
+ * - Timestamps: Relative time display with edit indicators
+ *
+ * Props:
+ * @param postId - Unique identifier for the post these comments belong to
+ * @param comments - Optional pre-loaded comments array for performance
+ * @param onToggleComments - Optional callback for parent component visibility control
+ *
+ * State Management:
+ * - newComment: Current comment text being composed
+ * - selectedFiles: Array of files selected for upload with comment
+ * - showCommentForm: Boolean controlling new comment form visibility
+ * - loadedComments: Comments fetched from API when not provided via props
+ * - Various UI states: loading, submitting, media upload visibility
+ *
+ * File Handling:
+ * - Multi-file selection with preview generation
+ * - File type validation (images, videos, documents)
+ * - File size limits and compression options
+ * - Memory cleanup for object URLs to prevent leaks
+ * - Drag-and-drop interface for intuitive file uploads
+ *
+ * Integration Points:
+ * - PostsContext: Comment creation, editing, deletion, and loading
+ * - AuthContext: User authentication and avatar display
+ * - MediaDisplay: Rich media rendering within comments
+ * - Avatar utilities: User profile image URL generation
+ * - File upload API: Multi-part form data submission
+ */
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { usePosts } from '../../contexts/PostsContext';
@@ -10,6 +69,18 @@ interface CommentsSectionProps {
   onToggleComments?: () => void;
 }
 
+/**
+ * CommentItem Component Props
+ *
+ * Individual comment display component with editing, reactions, and reply functionality.
+ * Supports nested comment threads with consistent styling and interaction patterns.
+ *
+ * Props:
+ * @param comment - Comment data object with content, author, and metadata
+ * @param postId - Parent post identifier for API operations
+ * @param isReply - Boolean indicating if this is a nested reply comment
+ * @param onReply - Callback function fired when user clicks reply button
+ */
 interface CommentItemProps {
   comment: Comment;
   postId: string;

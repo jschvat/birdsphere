@@ -1,6 +1,50 @@
+/**
+ * Reaction Data Model
+ * Universal reaction system supporting multiple reaction types for posts and comments.
+ *
+ * Architecture Overview:
+ * - Universal targeting system (posts, comments)
+ * - Seven reaction types: like, love, laugh, wow, sad, angry, hug
+ * - UPSERT mechanism prevents duplicate reactions per user/target
+ * - Reaction switching support (user can change reaction type)
+ * - Real-time reaction analytics and summaries
+ * - Engagement metrics for content ranking
+ *
+ * Key Features:
+ * - Multi-Target Support: Works with both posts and comments
+ * - Reaction Diversity: Seven distinct emotional reactions
+ * - User Experience: Seamless reaction switching without duplicates
+ * - Analytics Ready: Comprehensive reaction statistics and summaries
+ * - Performance Optimized: Efficient queries for high-volume interactions
+ *
+ * Database Design:
+ * - Unique constraint on (user_id, target_id, target_type) prevents duplicates
+ * - Indexed for fast lookups and aggregations
+ * - Target type validation ensures data consistency
+ * - Timestamp tracking for trending analysis
+ *
+ * Integration Points:
+ * - Works with Post and Comment models
+ * - Powers engagement scoring algorithms
+ * - Feeds real-time reaction counters
+ * - Supports user activity tracking
+ */
 const { query } = require('../config/database');
 
 class Reaction {
+  /**
+   * Create or Update Reaction
+   * Adds a new reaction or updates existing reaction for a user on a target.
+   * Uses UPSERT to allow users to change their reaction type.
+   *
+   * @param {Object} params - Reaction parameters
+   * @param {string} params.userId - ID of user creating the reaction
+   * @param {string} params.targetId - ID of target content (post or comment)
+   * @param {string} params.targetType - Type of target: 'post' or 'comment'
+   * @param {string} params.reactionType - Reaction type: like, love, laugh, wow, sad, angry, hug
+   * @returns {Promise<Object>} Created or updated reaction
+   * @throws {Error} If invalid target type or reaction type provided
+   */
   static async create({
     userId,
     targetId,
@@ -32,12 +76,33 @@ class Reaction {
     return result.rows[0];
   }
 
+  /**
+   * Find Reaction by ID
+   * Retrieves a specific reaction by its unique identifier.
+   *
+   * @param {string} id - Reaction ID
+   * @returns {Promise<Object|null>} Reaction or null if not found
+   */
   static async findById(id) {
     const sql = 'SELECT * FROM reactions WHERE id = $1';
     const result = await query(sql, [id]);
     return result.rows[0];
   }
 
+  /**
+   * Find User's Reactions
+   * Retrieves paginated list of reactions created by a specific user.
+   * Supports filtering by target type and reaction type.
+   *
+   * @param {string} userId - ID of user whose reactions to retrieve
+   * @param {Object} [options={}] - Query options
+   * @param {string} [options.targetType] - Filter by target type: 'post' or 'comment'
+   * @param {string} [options.reactionType] - Filter by reaction type
+   * @param {number} [options.limit=20] - Maximum reactions to return
+   * @param {number} [options.offset=0] - Pagination offset
+   * @param {string} [options.sort='newest'] - Sort order: newest or oldest
+   * @returns {Promise<Array>} Array of user's reactions
+   */
   static async findByUser(userId, options = {}) {
     const {
       targetType,
@@ -87,6 +152,21 @@ class Reaction {
     return result.rows;
   }
 
+  /**
+   * Find Reactions by Target
+   * Retrieves all reactions for a specific piece of content.
+   * Supports filtering by user and reaction type.
+   *
+   * @param {string} targetId - ID of target content
+   * @param {string} targetType - Type of target: 'post' or 'comment'
+   * @param {Object} [options={}] - Query options
+   * @param {string} [options.userId] - Filter by specific user
+   * @param {string} [options.reactionType] - Filter by reaction type
+   * @param {number} [options.limit=50] - Maximum reactions to return
+   * @param {number} [options.offset=0] - Pagination offset
+   * @param {string} [options.sort='newest'] - Sort order: newest or oldest
+   * @returns {Promise<Array>} Array of reactions on the target content
+   */
   static async findByTarget(targetId, targetType, options = {}) {
     const {
       userId,
@@ -136,6 +216,16 @@ class Reaction {
     return result.rows;
   }
 
+  /**
+   * Get User's Reaction on Target
+   * Checks if a user has reacted to specific content and returns the reaction.
+   * Used for UI state management to show active reactions.
+   *
+   * @param {string} userId - ID of user
+   * @param {string} targetId - ID of target content
+   * @param {string} targetType - Type of target: 'post' or 'comment'
+   * @returns {Promise<Object|null>} User's reaction or null if no reaction
+   */
   static async getUserReaction(userId, targetId, targetType) {
     const sql = `
       SELECT * FROM reactions
@@ -146,6 +236,15 @@ class Reaction {
     return result.rows[0];
   }
 
+  /**
+   * Get Reaction Summary
+   * Provides aggregated reaction counts by type for a piece of content.
+   * Returns both individual reaction counts and total reaction count.
+   *
+   * @param {string} targetId - ID of target content
+   * @param {string} targetType - Type of target: 'post' or 'comment'
+   * @returns {Promise<Object>} Object with reactions array and total count
+   */
   static async getReactionSummary(targetId, targetType) {
     const sql = `
       SELECT reaction_type, COUNT(*) as count
@@ -325,10 +424,22 @@ class Reaction {
     return result.rows;
   }
 
+  /**
+   * Get Valid Reaction Types
+   * Returns list of all supported reaction types for validation.
+   *
+   * @returns {Array<string>} Array of valid reaction type strings
+   */
   static getValidReactionTypes() {
     return ['like', 'love', 'laugh', 'wow', 'sad', 'angry', 'hug'];
   }
 
+  /**
+   * Get Valid Target Types
+   * Returns list of all supported target types for validation.
+   *
+   * @returns {Array<string>} Array of valid target type strings
+   */
   static getValidTargetTypes() {
     return ['post', 'comment'];
   }

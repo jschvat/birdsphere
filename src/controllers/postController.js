@@ -1,3 +1,50 @@
+/**
+ * Post Controller
+ *
+ * Handles all post-related HTTP endpoints for the BirdSphere social platform.
+ * Manages post creation, retrieval, updates, deletions, and engagement features
+ * including reactions, comments, and sharing functionality.
+ *
+ * Core Responsibilities:
+ * - Post CRUD operations with media support
+ * - Timeline generation and content feeds
+ * - User engagement tracking (reactions, views, shares)
+ * - Comment management integration
+ * - Content moderation and visibility controls
+ * - Search and discovery features
+ *
+ * Key Features:
+ * 1. **Media Post Creation**: Handle file uploads with validation
+ * 2. **Timeline Construction**: Generate personalized content feeds
+ * 3. **Engagement Tracking**: Reactions, comments, shares, views
+ * 4. **Content Discovery**: Search, filtering, and trending algorithms
+ * 5. **Access Control**: Visibility settings and permission checks
+ * 6. **Performance Optimization**: Efficient queries and caching
+ *
+ * Endpoints Overview:
+ * - POST /posts - Create new post with media
+ * - GET /posts - List posts with filters and pagination
+ * - GET /posts/:id - Get single post with full details
+ * - PUT /posts/:id - Update existing post
+ * - DELETE /posts/:id - Delete post (author only)
+ * - POST /posts/:id/reactions - Add reaction to post
+ * - GET /posts/:id/comments - Get post comments
+ * - GET /timeline - Generate personalized timeline
+ *
+ * Data Flow:
+ * Request → Validation → Authentication → Model Operation → Response
+ * File Upload → Media Processing → Database Storage → URL Generation
+ * Timeline Request → Following Query → Content Aggregation → Sorting → Response
+ *
+ * Integration Points:
+ * - Post model for database operations
+ * - Comment model for comment functionality
+ * - User model for author information
+ * - Reaction model for engagement
+ * - Follow model for timeline generation
+ * - Upload middleware for media processing
+ */
+
 const Post = require('../models/Post');
 const Comment = require('../models/Comment');
 const Reaction = require('../models/Reaction');
@@ -6,7 +53,20 @@ const User = require('../models/User');
 const { validationResult } = require('express-validator');
 
 /**
- * Create a new post
+ * Create New Post
+ *
+ * Creates a new post with optional media attachments. Handles file uploads,
+ * content validation, and media processing. Supports various post types
+ * and visibility settings.
+ *
+ * Request Processing:
+ * 1. Validate request data and files
+ * 2. Process uploaded media files
+ * 3. Create post record with media
+ * 4. Generate response with author info
+ *
+ * @route POST /api/posts
+ * @access Private (authenticated users)
  */
 exports.createPost = async (req, res) => {
   console.log('🔍 createPost called with:', {
@@ -50,7 +110,7 @@ exports.createPost = async (req, res) => {
     }
 
     // Process uploaded files into media array for the Post model
-    const publicUploadUrl = process.env.PUBLIC_UPLOAD_URL || '/uploads';
+    // Store only filenames, URLs will be generated dynamically using env variables
     const mediaAttachments = req.files ? req.files.map((file, index) => ({
       id: file.filename.split('.')[0], // Use filename without extension as ID
       filename: file.filename,
@@ -58,7 +118,7 @@ exports.createPost = async (req, res) => {
       mimetype: file.mimetype,
       size: file.size,
       category: file.category || 'image',
-      url: `${publicUploadUrl}/${file.filename}`,
+      url: file.filename, // Store only filename, not full URL
       metadata: {
         width: file.width,
         height: file.height,
@@ -165,11 +225,32 @@ exports.getTimeline = async (req, res) => {
         includeReplies: false // Only top-level comments for now
       });
 
-      // Transform comments to include author information
+      // Transform comments to include author information and media
       const commentsWithAuthors = await Promise.all(comments.map(async (comment) => {
         const commentAuthor = await User.findById(comment.author_id);
+
+        // Fetch media for this comment
+        const mediaQuery = `
+          SELECT cm.id, cm.file_type, cm.file_url, cm.file_name,
+                 cm.file_size, cm.mime_type, cm.width, cm.height,
+                 cm.duration, cm.thumbnail_url, cm.display_order
+          FROM comment_media cm
+          WHERE cm.comment_id = $1
+          ORDER BY cm.display_order ASC
+        `;
+        const { query } = require('../config/database');
+        const mediaResult = await query(mediaQuery, [comment.id]);
+
         return {
-          ...comment,
+          id: comment.id,
+          content: comment.content,
+          authorId: comment.author_id,
+          postId: comment.post_id,
+          parentCommentId: comment.parent_comment_id,
+          reactionCounts: comment.reaction_counts || {},
+          replyCount: comment.reply_count || 0,
+          createdAt: comment.created_at,
+          updatedAt: comment.updated_at,
           author: {
             id: commentAuthor.id,
             username: commentAuthor.username,
@@ -177,7 +258,20 @@ exports.getTimeline = async (req, res) => {
             lastName: commentAuthor.last_name,
             profileImage: commentAuthor.profile_image,
             isVerified: commentAuthor.is_verified || false
-          }
+          },
+          media: mediaResult.rows.map(media => ({
+            id: media.id,
+            fileType: media.file_type,
+            fileUrl: media.file_url,
+            fileName: media.file_name,
+            fileSize: media.file_size,
+            mimeType: media.mime_type,
+            width: media.width,
+            height: media.height,
+            duration: media.duration,
+            thumbnailUrl: media.thumbnail_url,
+            displayOrder: media.display_order
+          }))
         };
       }));
 

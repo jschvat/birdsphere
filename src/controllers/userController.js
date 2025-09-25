@@ -1,7 +1,44 @@
+/**
+ * User Controller
+ * Handles user profile management, discovery, and social features.
+ *
+ * Core Responsibilities:
+ * - Public user profile retrieval with caching
+ * - Geographic user discovery with proximity search
+ * - User directory and listing management
+ * - Profile updates with cache invalidation
+ * - Animal interest and rating systems
+ * - Comprehensive user analytics
+ *
+ * Key Features:
+ * - Geographic Search: Location-based user discovery with Haversine calculations
+ * - Caching Strategy: Redis-based profile and search result caching
+ * - Rating System: Peer-to-peer user rating and reputation management
+ * - Animal Interests: Category-based user matching and discovery
+ * - Profile Management: Comprehensive user profile CRUD operations
+ * - Performance Optimized: Efficient queries with pagination and caching
+ *
+ * Integration Points:
+ * - Works with User model for all user operations
+ * - Connects to Listing model for seller profiles
+ * - Uses Redis caching for performance optimization
+ * - Supports geolocation services for proximity search
+ * - Integrates with rating and reputation systems
+ */
 const User = require('../models/User');
 const Listing = require('../models/Listing');
 const { cache, cacheKeys } = require('../middleware/cache');
 
+/**
+ * Get Public User Profile
+ * Retrieves comprehensive user profile information with caching optimization.
+ * Includes user's active listings, ratings, and complete profile data.
+ *
+ * @param {Object} req - Express request object
+ * @param {string} req.params.username - Username to retrieve profile for
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} User profile with listings and ratings
+ */
 const getUserProfile = async (req, res) => {
   try {
     const { username } = req.params;
@@ -78,6 +115,21 @@ const getUserProfile = async (req, res) => {
   }
 };
 
+/**
+ * Find Nearby Users
+ * Geographic user discovery using Haversine distance calculations.
+ * Supports filtering by user roles and animal interests with caching.
+ *
+ * @param {Object} req - Express request object
+ * @param {number} req.query.latitude - User's latitude coordinate
+ * @param {number} req.query.longitude - User's longitude coordinate
+ * @param {number} [req.query.radius=50] - Search radius in kilometers
+ * @param {number} [req.query.limit=20] - Maximum users to return
+ * @param {Array|string} [req.query.userRoles] - Filter by user roles
+ * @param {Array|string} [req.query.animalInterests] - Filter by animal interests
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} Nearby users with distance calculations
+ */
 const findNearbyUsers = async (req, res) => {
   try {
     const { latitude, longitude, radius = 50, limit = 20, userRoles, animalInterests } = req.query;
@@ -137,6 +189,17 @@ const findNearbyUsers = async (req, res) => {
   }
 };
 
+/**
+ * Get All Users Directory
+ * Paginated user directory for public browsing with basic profile information.
+ * Returns only public-safe user data without sensitive information.
+ *
+ * @param {Object} req - Express request object
+ * @param {number} [req.query.page=1] - Page number for pagination
+ * @param {number} [req.query.limit=20] - Users per page (max 50)
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} Paginated user directory
+ */
 const getAllUsers = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -178,6 +241,16 @@ const getAllUsers = async (req, res) => {
   }
 };
 
+/**
+ * Get Current User's Full Profile
+ * Retrieves complete profile information for the authenticated user.
+ * Includes private data like email and coordinates.
+ *
+ * @param {Object} req - Express request object with user authentication
+ * @param {Object} req.user - Authenticated user object
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} Complete authenticated user profile
+ */
 const getCurrentUserProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
@@ -225,6 +298,17 @@ const getCurrentUserProfile = async (req, res) => {
   }
 };
 
+/**
+ * Update User Profile
+ * Updates user profile with field validation and cache invalidation.
+ * Filters updates to only allow safe, user-modifiable fields.
+ *
+ * @param {Object} req - Express request object with user authentication
+ * @param {Object} req.user - Authenticated user object
+ * @param {Object} req.body - Profile update data
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} Updated user profile data
+ */
 const updateProfile = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -293,6 +377,15 @@ const updateProfile = async (req, res) => {
 };
 
 // New endpoints for animal categories and ratings
+/**
+ * Get Animal Categories Tree
+ * Retrieves hierarchical animal category structure for interests and filtering.
+ * Used for user interest selection and search filters.
+ *
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} Hierarchical animal categories tree
+ */
 const getAnimalCategories = async (req, res) => {
   try {
     const categories = await User.getAnimalCategoriesTree();
@@ -302,6 +395,20 @@ const getAnimalCategories = async (req, res) => {
   }
 };
 
+/**
+ * Add User Rating
+ * Allows authenticated users to rate other users based on transactions.
+ * Prevents self-rating and validates rating values.
+ *
+ * @param {Object} req - Express request object with user authentication
+ * @param {string} req.params.userId - ID of user to rate
+ * @param {Object} req.body - Rating data
+ * @param {number} req.body.rating - Rating value (1-5)
+ * @param {string} [req.body.comment] - Optional rating comment
+ * @param {string} [req.body.transactionType] - Type of transaction rated
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} Created rating record
+ */
 const addUserRating = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -327,6 +434,17 @@ const addUserRating = async (req, res) => {
   }
 };
 
+/**
+ * Get User Ratings
+ * Retrieves recent ratings and reviews for a specific user.
+ * Used for reputation display and trust indicators.
+ *
+ * @param {Object} req - Express request object
+ * @param {string} req.params.userId - ID of user to get ratings for
+ * @param {number} [req.query.limit=10] - Maximum ratings to return
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} User's recent ratings and reviews
+ */
 const getUserRatings = async (req, res) => {
   try {
     const { userId } = req.params;
