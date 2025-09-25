@@ -593,9 +593,12 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, postId, isReply = fa
                 {comment.author.firstName} {comment.author.lastName}
               </span>
               <span className="text-xs text-gray-500">@{comment.author.username}</span>
-              <time className="text-xs text-gray-500" dateTime={comment.createdAt}>
-                {formatTimestamp(comment.createdAt)}
-                {comment.updatedAt !== comment.createdAt && ' • edited'}
+              <time className="text-xs text-gray-500" dateTime={comment.createdAt || comment.created_at}>
+                {(() => {
+                  const createdDate = comment.createdAt || comment.created_at;
+                  return createdDate ? formatTimestamp(createdDate) : 'Invalid date';
+                })()}
+                {(comment.updatedAt || comment.updated_at) !== (comment.createdAt || comment.created_at) && ' • edited'}
               </time>
             </div>
             {isOwner && (

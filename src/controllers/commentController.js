@@ -210,6 +210,9 @@ exports.getPostComments = async (req, res) => {
 
         return {
           ...reply,
+          replyCount: parseInt(reply.reply_count || 0),
+          createdAt: reply.created_at,
+          updatedAt: reply.updated_at,
           author: {
             id: replyAuthor.id,
             username: replyAuthor.username,
@@ -224,6 +227,9 @@ exports.getPostComments = async (req, res) => {
 
       return {
         ...comment,
+        replyCount: parseInt(comment.reply_count || 0),
+        createdAt: comment.created_at,
+        updatedAt: comment.updated_at,
         author: {
           id: author.id,
           username: author.username,

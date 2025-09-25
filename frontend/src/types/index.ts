@@ -179,6 +179,8 @@ export interface Comment {
   replies?: Comment[];
   replyCount: number;
   reply_count?: string;
+  created_at?: string;
+  updated_at?: string;
   isEdited?: boolean;
   isHidden?: boolean;
   createdAt: string;
