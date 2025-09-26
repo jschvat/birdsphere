@@ -59,6 +59,7 @@ const reactionValidation = [
 
 // Timeline and discovery routes
 router.get('/timeline', authenticateToken, postController.getTimeline);
+router.get('/mentions', authenticateToken, postController.getMentions);
 router.get('/trending', postController.getTrendingPosts);
 // router.get('/discovery', authenticateToken, postController.getDiscoveryPosts);
 router.get('/search', postController.searchPosts);

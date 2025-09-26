@@ -322,6 +322,133 @@ exports.getTimeline = async (req, res) => {
 };
 
 /**
+ * Get mentions for the authenticated user
+ * Shows all posts where the user is mentioned in comments (replied to)
+ */
+exports.getMentions = async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 20,
+      sort = 'newest'
+    } = req.query;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+
+    // Query to find posts where the current user is mentioned (has comments/replies to their posts)
+    const { query } = require('../config/database');
+    const mentionsQuery = `
+      SELECT DISTINCT p.*,
+             u.id as author_id, u.username as author_username,
+             u.first_name as author_first_name, u.last_name as author_last_name,
+             u.profile_image as author_profile_image, u.is_verified as author_is_verified,
+             pm.media_data
+      FROM posts p
+      INNER JOIN users u ON p.author_id = u.id
+      INNER JOIN comments c ON p.id = c.post_id
+      LEFT JOIN (
+        SELECT post_id, json_agg(
+          json_build_object(
+            'id', id,
+            'filename', filename,
+            'originalName', original_name,
+            'fileSize', file_size,
+            'mimeType', mime_type,
+            'category', category,
+            'url', 'http://localhost:3000' || file_path,
+            'fileUrl', 'http://localhost:3000' || file_path,
+            'metadata', metadata
+          ) ORDER BY display_order
+        ) as media_data
+        FROM post_media
+        GROUP BY post_id
+      ) pm ON p.id = pm.post_id
+      WHERE p.author_id = $1
+      AND c.author_id != $1
+      AND p.is_active = true
+      AND c.is_active = true
+      ORDER BY c.created_at DESC
+      LIMIT $2 OFFSET $3
+    `;
+
+    const result = await query(mentionsQuery, [req.user.id, parseInt(limit), offset]);
+    const posts = result.rows;
+
+    // Get total count for pagination
+    const countQuery = `
+      SELECT COUNT(DISTINCT p.id) as count
+      FROM posts p
+      INNER JOIN comments c ON p.id = c.post_id
+      WHERE p.author_id = $1
+      AND c.author_id != $1
+      AND p.is_active = true
+      AND c.is_active = true
+    `;
+    const countResult = await query(countQuery, [req.user.id]);
+    const total = parseInt(countResult.rows[0].count);
+
+    // Transform posts to match expected format
+    const postsWithDetails = await Promise.all(posts.map(async (post) => {
+      // Get reactions for this post
+      const reactions = await Reaction.findByTargetId(post.id, 'post');
+      const reactionCounts = reactions.reduce((acc, reaction) => {
+        acc[reaction.reaction_type] = (acc[reaction.reaction_type] || 0) + 1;
+        return acc;
+      }, {});
+
+      // Get comment count
+      const commentCountQuery = `SELECT COUNT(*) as count FROM comments WHERE post_id = $1 AND is_active = true`;
+      const commentCountResult = await query(commentCountQuery, [post.id]);
+      const commentCount = parseInt(commentCountResult.rows[0].count);
+
+      return {
+        id: post.id,
+        userId: post.author_id,
+        content: post.content,
+        postType: post.post_type || 'standard',
+        visibility: post.visibility || 'public',
+        media: post.media_data || [],
+        reactions: reactions,
+        reactionCounts: reactionCounts,
+        commentCount: commentCount,
+        shareCount: post.share_count || 0,
+        createdAt: post.created_at,
+        updatedAt: post.updated_at,
+        author: {
+          id: post.author_id,
+          username: post.author_username,
+          firstName: post.author_first_name,
+          lastName: post.author_last_name,
+          profileImage: post.author_profile_image,
+          isVerified: post.author_is_verified || false
+        }
+      };
+    }));
+
+    const totalPages = Math.ceil(total / parseInt(limit));
+    const hasNextPage = parseInt(page) < totalPages;
+    const hasPreviousPage = parseInt(page) > 1;
+
+    res.json({
+      posts: postsWithDetails,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages,
+        totalPosts: total,
+        hasNextPage,
+        hasPreviousPage,
+        limit: parseInt(limit)
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching mentions:', error);
+    res.status(500).json({
+      error: 'Failed to fetch mentions',
+      details: error.message
+    });
+  }
+};
+
+/**
  * Get a single post by ID
  */
 exports.getPost = async (req, res) => {

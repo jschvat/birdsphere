@@ -7,6 +7,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
 import Timeline from './pages/Timeline';
+import Mentions from './pages/Mentions';
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/timeline" element={<ProtectedRoute><Timeline /></ProtectedRoute>} />
+              <Route path="/mentions" element={<ProtectedRoute><Mentions /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/profile/edit" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/explore" element={<ProtectedRoute><div>Explore page - Coming soon</div></ProtectedRoute>} />

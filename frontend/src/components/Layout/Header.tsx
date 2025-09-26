@@ -133,6 +133,16 @@ const Header: React.FC = () => {
               Messages
               {/* Notification badge could go here */}
             </button>
+            <button
+              onClick={() => navigate('/mentions')}
+              className={`text-sm font-medium transition-colors ${
+                isCurrentPage('/mentions')
+                  ? 'text-blue-600 border-b-2 border-blue-600 pb-1'
+                  : 'text-gray-700 hover:text-blue-600'
+              }`}
+            >
+              Mentions
+            </button>
           </nav>
 
           {/* User Menu */}
@@ -289,6 +299,17 @@ const Header: React.FC = () => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-3.582 8-8 8a9.959 9.959 0 01-4.906-1.274A6 6 0 113 16.5c0-3.315 2.686-6 6-6 1.316 0 2.485.42 3.456 1.138a8.958 8.958 0 015.544 1.362z" />
             </svg>
             <span>Messages</span>
+          </button>
+          <button
+            onClick={() => navigate('/mentions')}
+            className={`flex flex-col items-center py-2 px-4 text-xs ${
+              isCurrentPage('/mentions') ? 'text-blue-600' : 'text-gray-500'
+            }`}
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+            </svg>
+            <span>Mentions</span>
           </button>
           <button
             onClick={() => navigate('/profile')}
