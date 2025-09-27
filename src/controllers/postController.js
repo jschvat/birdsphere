@@ -337,36 +337,19 @@ exports.getMentions = async (req, res) => {
     // Query to find posts where the current user is mentioned (has comments/replies to their posts)
     const { query } = require('../config/database');
     const mentionsQuery = `
-      SELECT DISTINCT p.*,
+      SELECT DISTINCT p.id, p.content, p.post_type, p.visibility, p.share_count, p.created_at, p.updated_at, p.is_active, p.author_id,
              u.id as author_id, u.username as author_username,
              u.first_name as author_first_name, u.last_name as author_last_name,
              u.profile_image as author_profile_image, u.is_verified as author_is_verified,
-             pm.media_data
+             (SELECT MAX(created_at) FROM comments WHERE post_id = p.id AND author_id != $1 AND is_active = true) as latest_comment_date
       FROM posts p
       INNER JOIN users u ON p.author_id = u.id
       INNER JOIN comments c ON p.id = c.post_id
-      LEFT JOIN (
-        SELECT post_id, json_agg(
-          json_build_object(
-            'id', id,
-            'filename', filename,
-            'originalName', original_name,
-            'fileSize', file_size,
-            'mimeType', mime_type,
-            'category', category,
-            'url', 'http://localhost:3000' || file_path,
-            'fileUrl', 'http://localhost:3000' || file_path,
-            'metadata', metadata
-          ) ORDER BY display_order
-        ) as media_data
-        FROM post_media
-        GROUP BY post_id
-      ) pm ON p.id = pm.post_id
       WHERE p.author_id = $1
       AND c.author_id != $1
       AND p.is_active = true
       AND c.is_active = true
-      ORDER BY c.created_at DESC
+      ORDER BY latest_comment_date DESC
       LIMIT $2 OFFSET $3
     `;
 
@@ -400,13 +383,36 @@ exports.getMentions = async (req, res) => {
       const commentCountResult = await query(commentCountQuery, [post.id]);
       const commentCount = parseInt(commentCountResult.rows[0].count);
 
+      // Get media for this post
+      const mediaQuery = `
+        SELECT id, file_name, file_size, mime_type, file_type, file_url,
+               thumbnail_url, width, height, duration, display_order
+        FROM post_media
+        WHERE post_id = $1
+        ORDER BY display_order
+      `;
+      const mediaResult = await query(mediaQuery, [post.id]);
+      const media = mediaResult.rows.map(m => ({
+        id: m.id,
+        filename: m.file_name,
+        fileSize: m.file_size,
+        mimeType: m.mime_type,
+        fileType: m.file_type,
+        url: m.file_url,
+        fileUrl: m.file_url,
+        thumbnailUrl: m.thumbnail_url,
+        width: m.width,
+        height: m.height,
+        duration: m.duration
+      }));
+
       return {
         id: post.id,
         userId: post.author_id,
         content: post.content,
         postType: post.post_type || 'standard',
         visibility: post.visibility || 'public',
-        media: post.media_data || [],
+        media: media,
         reactions: reactions,
         reactionCounts: reactionCounts,
         commentCount: commentCount,
